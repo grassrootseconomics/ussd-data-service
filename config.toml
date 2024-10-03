@@ -1,0 +1,13 @@
+[metrics]
+enable = true
+
+[api]
+address = ":5006"
+key = "1337"
+
+[postgres]
+dsn = "postgres://postgres:postgres@127.0.0.1:5432/ge_celo_custodial"
+
+[chain]
+id = 42220
+rpc_endpoint = "https://forno.celo.org"
