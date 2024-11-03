@@ -32,4 +32,11 @@ type (
 		TokenDecimals   string `json:"tokenDecimals" db:"token_decimals"`
 		Balance         string `json:"balance"`
 	}
+
+	TokenDetails struct {
+		TokenSymbol   string `json:"tokenSymbol" db:"token_symbol"`
+		TokenDecimals string `json:"tokenDecimals" db:"token_decimals"`
+		SinkAddress   string `json:"sinkAddress" db:"sink_address"`
+		TokenName     string `json:"balance" db:"token_name"`
+	}
 )

@@ -64,3 +64,7 @@ func (a *API) tokenHoldingsHandler(c echo.Context) error {
 		},
 	})
 }
+
+func (a *API) tokenDetailsHandler(c echo.Context) error {
+	return nil
+}

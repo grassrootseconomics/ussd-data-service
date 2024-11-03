@@ -90,6 +90,7 @@ func New(o APIOpts) *API {
 	apiGroup := router.Group(apiVersion)
 	apiGroup.GET("/transfers/last10/:address", api.last10TxHandler)
 	apiGroup.GET("/holdings/:address", api.tokenHoldingsHandler)
+	apiGroup.GET("/token/:address", api.tokenDetailsHandler)
 
 	api.router = router
 	return api
