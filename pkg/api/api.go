@@ -37,6 +37,6 @@ type (
 		TokenSymbol   string `json:"tokenSymbol" db:"token_symbol"`
 		TokenDecimals string `json:"tokenDecimals" db:"token_decimals"`
 		SinkAddress   string `json:"sinkAddress" db:"sink_address"`
-		TokenName     string `json:"balance" db:"token_name"`
+		TokenName     string `json:"tokenName" db:"token_name"`
 	}
 )
