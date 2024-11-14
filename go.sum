@@ -101,8 +101,8 @@ github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/google/subcommands v1.2.0/go.mod h1:ZjhPrFU+Olkh9WazFPsl27BQ4UPiG37m3yTrtFlrHVk=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/grassrootseconomics/ethutils v1.3.0 h1:0uX9HG7EujqoNyueYN2gB40zki50AIdxuNLmU0FZroU=
-github.com/grassrootseconomics/ethutils v1.3.0/go.mod h1:Wuv1VEZrkLIXqTSEYI3Nh9HG/ZHOUQ+U+xvWJ8QtjgQ=
+github.com/grassrootseconomics/ethutils v1.3.1 h1:LlQO90HjJkl7ejC8fv6jP7RJUrAm1j4VMMCYfsoIrhU=
+github.com/grassrootseconomics/ethutils v1.3.1/go.mod h1:Wuv1VEZrkLIXqTSEYI3Nh9HG/ZHOUQ+U+xvWJ8QtjgQ=
 github.com/holiman/uint256 v1.3.1 h1:JfTzmih28bittyHM8z360dCjIA9dbPIBlcTI6lmctQs=
 github.com/holiman/uint256 v1.3.1/go.mod h1:EOMSn4q6Nyt9P6efbI3bueV4e1b3dGlUCXeiRV4ng7E=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
@@ -114,10 +114,6 @@ github.com/jackc/pgx/v5 v5.7.1/go.mod h1:e7O26IywZZ+naJtWWos6i6fvWK+29etgITqrqHL
 github.com/jackc/puddle/v2 v2.2.2 h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo=
 github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
 github.com/jmoiron/sqlx v1.2.0/go.mod h1:1FEQNm3xlJgrMD+FBdI9+xvCksHtbpVBBw5dYhBSsks=
-github.com/kamikazechaser/common v0.2.0 h1:bqi5UaMTDm/wtZlJEvQDNhsLVJP4Beg+HKWeQ+dhpss=
-github.com/kamikazechaser/common v0.2.0/go.mod h1:I1LEc8+W+g/KHZWARc1gMhuSa2STbQgfL4Hao6I/ZwY=
-github.com/kamikazechaser/common v1.0.0 h1:a/47O/TyQb417CUwsBDI7zlnJEnmhJz9czSPirpjlLg=
-github.com/kamikazechaser/common v1.0.0/go.mod h1:I1LEc8+W+g/KHZWARc1gMhuSa2STbQgfL4Hao6I/ZwY=
 github.com/kamikazechaser/common v1.0.1-0.20241102071235-b1d359b0e63b h1:Y76YypOaTyCyG2ikJt/Rf1B9nXhA52bUO5IUVC9Y8tA=
 github.com/kamikazechaser/common v1.0.1-0.20241102071235-b1d359b0e63b/go.mod h1:RPNJihP4K62Hzokeu6Zlt+4l7Zp0eOhaiEyVU9VZwYE=
 github.com/klauspost/compress v1.16.0 h1:iULayQNOReoYUe+1qtKOqw9CwJv3aNQu8ivo7lw1HU4=

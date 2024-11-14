@@ -7,7 +7,9 @@ require (
 	github.com/ethereum/go-ethereum v1.14.8
 	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/go-playground/validator/v10 v10.22.1
-	github.com/grassrootseconomics/ethutils v1.3.0
+	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/grassrootseconomics/ethutils v1.3.1
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/kamikazechaser/common v1.0.1-0.20241102071235-b1d359b0e63b
 	github.com/knadh/goyesql/v2 v2.2.0
@@ -16,6 +18,9 @@ require (
 	github.com/knadh/koanf/providers/file v1.1.1
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/labstack/echo/v4 v4.12.0
+	github.com/lmittmann/w3 v0.17.0
+	github.com/uptrace/bunrouter v1.0.22
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.22
 )
 
 require (
@@ -37,8 +42,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -48,7 +51,6 @@ require (
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lmittmann/tint v1.0.4 // indirect
-	github.com/lmittmann/w3 v0.17.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -59,8 +61,6 @@ require (
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
-	github.com/uptrace/bunrouter v1.0.22 // indirect
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.22 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
