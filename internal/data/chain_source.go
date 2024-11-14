@@ -2,11 +2,14 @@ package data
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/grassrootseconomics/ethutils"
 	"github.com/grassrootseconomics/ussd-data-service/pkg/api"
+	"github.com/lmittmann/w3"
+	"github.com/lmittmann/w3/module/eth"
 )
 
 type (
@@ -20,6 +23,13 @@ type (
 		logg  *slog.Logger
 		chain *ethutils.Provider
 	}
+)
+
+var (
+	nameGetter        = w3.MustNewFunc("name()", "string")
+	symbolGetter      = w3.MustNewFunc("symbol()", "string")
+	decimalsGetter    = w3.MustNewFunc("decimals()", "uint8")
+	sinkAddressGetter = w3.MustNewFunc("sinkAddress()", "address")
 )
 
 func NewChainProvider(o ChainOpts) *Chain {
@@ -48,4 +58,70 @@ func (c *Chain) MergeTokenBalances(ctx context.Context, input []*api.TokenHoldin
 	}
 
 	return nil
+}
+
+func (c *Chain) TokenDetails(ctx context.Context, input string) (*api.TokenDetails, error) {
+	contractAddress := w3.A(input)
+
+	var (
+		tokenName     string
+		tokenSymbol   string
+		tokenDecimals uint8
+		sinkAddress   common.Address
+
+		batchErr w3.CallErrors
+	)
+
+	if err := c.chain.Client.CallCtx(
+		ctx,
+		eth.CallFunc(contractAddress, nameGetter).Returns(&tokenName),
+		eth.CallFunc(contractAddress, symbolGetter).Returns(&tokenSymbol),
+		eth.CallFunc(contractAddress, decimalsGetter).Returns(&tokenDecimals),
+	); errors.As(err, &batchErr) {
+		return nil, batchErr
+	} else if err != nil {
+		return nil, err
+	}
+
+	if err := c.chain.Client.CallCtx(
+		ctx,
+		eth.CallFunc(contractAddress, sinkAddressGetter).Returns(&sinkAddress),
+	); err != nil {
+		// This will most likely revert if the contract does not have a sinkAddress
+		// Instead of handling the error we just ignore it and set the value to 0
+		sinkAddress = ethutils.ZeroAddress
+	}
+
+	return &api.TokenDetails{
+		TokenName:     tokenName,
+		TokenSymbol:   tokenSymbol,
+		TokenDecimals: tokenDecimals,
+		SinkAddress:   sinkAddress.Hex(),
+	}, nil
+}
+
+func (c *Chain) PoolDetails(ctx context.Context, input string) (*api.PoolDetails, error) {
+	contractAddress := w3.A(input)
+
+	var (
+		poolName   string
+		poolSymbol string
+
+		batchErr w3.CallErrors
+	)
+
+	if err := c.chain.Client.CallCtx(
+		ctx,
+		eth.CallFunc(contractAddress, nameGetter).Returns(&poolName),
+		eth.CallFunc(contractAddress, symbolGetter).Returns(&poolSymbol),
+	); errors.As(err, &batchErr) {
+		return nil, batchErr
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &api.PoolDetails{
+		PoolName:   poolName,
+		PoolSymbol: poolSymbol,
+	}, nil
 }

@@ -35,8 +35,13 @@ type (
 
 	TokenDetails struct {
 		TokenSymbol   string `json:"tokenSymbol" db:"token_symbol"`
-		TokenDecimals string `json:"tokenDecimals" db:"token_decimals"`
+		TokenDecimals uint8  `json:"tokenDecimals" db:"token_decimals"`
 		SinkAddress   string `json:"sinkAddress" db:"sink_address"`
 		TokenName     string `json:"tokenName" db:"token_name"`
+	}
+
+	PoolDetails struct {
+		PoolName   string `json:"poolName" db:"pool_name"`
+		PoolSymbol string `json:"poolSymbol" db:"pool_symbol"`
 	}
 )

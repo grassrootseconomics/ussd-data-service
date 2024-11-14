@@ -19,3 +19,15 @@ SELECT DISTINCT tokens.token_symbol, tokens.contract_address, tokens.token_decim
 INNER JOIN token_transfer on tokens.contract_address = token_transfer.contract_address
 WHERE token_transfer.sender_address = $1
 OR token_transfer.recipient_address = $1;
+
+--name: token-details
+-- Fetches token details
+-- $1: token_address
+SELECT * FROM tokens
+WHERE tokens.contract_address = $1;
+
+--name: pool-details
+-- Fetches tpool details
+-- $1: pool_address
+SELECT * FROM pools
+WHERE pools.contract_address = $1;

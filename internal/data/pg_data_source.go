@@ -15,6 +15,8 @@ type (
 	Queries struct {
 		Last10Tx      string `query:"last-10-tx"`
 		TokenHoldings string `query:"token-holdings"`
+		TokenDetails  string `query:"token-details"`
+		PoolDetails   string `query:"pool-details"`
 	}
 
 	PgOpts struct {
@@ -86,4 +88,24 @@ func (pg *Pg) TokenHoldings(ctx context.Context, publicAddress string) ([]*api.T
 	}
 
 	return tokenHoldings, nil
+}
+
+func (pg *Pg) TokenDetails(ctx context.Context, tokenAddress string) (*api.TokenDetails, error) {
+	var tokenDetails *api.TokenDetails
+
+	if err := pgxscan.Select(ctx, pg.db, &tokenDetails, pg.queries.TokenDetails, tokenAddress); err != nil {
+		return nil, err
+	}
+
+	return tokenDetails, nil
+}
+
+func (pg *Pg) PoolDetails(ctx context.Context, poolAddress string) (*api.PoolDetails, error) {
+	var poolDetails *api.PoolDetails
+
+	if err := pgxscan.Select(ctx, pg.db, &poolDetails, pg.queries.PoolDetails, poolAddress); err != nil {
+		return nil, err
+	}
+
+	return poolDetails, nil
 }
