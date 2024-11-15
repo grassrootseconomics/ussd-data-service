@@ -41,9 +41,9 @@ func InitConfig(lo *slog.Logger, confFilePath string) *koanf.Koanf {
 		os.Exit(1)
 	}
 
-	if err := ko.Load(env.Provider("USSD_DATA", ".", func(s string) string {
+	if err := ko.Load(env.Provider("DATA_", ".", func(s string) string {
 		return strings.ReplaceAll(strings.ToLower(
-			strings.TrimPrefix(s, "USSD_DATA")), "__", ".")
+			strings.TrimPrefix(s, "DATA_")), "__", ".")
 	}), nil); err != nil {
 		lo.Error("could not override config from env vars", "error", err)
 		os.Exit(1)
