@@ -1,11 +1,13 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/VictoriaMetrics/metrics"
-	"github.com/labstack/echo/v4"
+	"github.com/uptrace/bunrouter"
 )
 
-func (a *API) metricsHandler(c echo.Context) error {
-	metrics.WritePrometheus(c.Response(), true)
+func metricsHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	metrics.WritePrometheus(w, true)
 	return nil
 }

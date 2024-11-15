@@ -1,10 +1,11 @@
-package xapi
+package api
 
 import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang-jwt/jwt/v5/request"
+	model "github.com/grassrootseconomics/ussd-data-service/pkg/api"
 	"github.com/kamikazechaser/common/httputil"
 	"github.com/uptrace/bunrouter"
 )
@@ -27,33 +28,33 @@ func (a *API) authMiddleware(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 
 			if err != nil {
 				a.logg.Error("JWT validation failed", "error", err)
-				return httputil.JSON(w, http.StatusBadRequest, map[string]any{
-					"ok":          false,
-					"description": "JWT validation failed",
+				return httputil.JSON(w, http.StatusBadRequest, model.ErrResponse{
+					Ok:          false,
+					Description: "JWT validation failed",
 				})
 			}
 
 			if !token.Valid {
-				return httputil.JSON(w, http.StatusUnauthorized, map[string]any{
-					"ok":          false,
-					"description": "Invalid token",
+				return httputil.JSON(w, http.StatusUnauthorized, model.ErrResponse{
+					Ok:          false,
+					Description: "Invalid token",
 				})
 			}
 
 			if claims, ok := token.Claims.(JWTCustomClaims); ok {
 				if !claims.Service {
-					return httputil.JSON(w, http.StatusUnauthorized, map[string]any{
-						"ok":          false,
-						"description": "Only service level keys allowed",
+					return httputil.JSON(w, http.StatusUnauthorized, model.ErrResponse{
+						Ok:          false,
+						Description: "Only service level keys allowed",
 					})
 				}
 			}
 
 			return next(w, req)
 		} else {
-			return httputil.JSON(w, http.StatusUnauthorized, map[string]any{
-				"ok":          false,
-				"description": "Authorization token is required",
+			return httputil.JSON(w, http.StatusUnauthorized, model.ErrResponse{
+				Ok:          false,
+				Description: "Authorization token is required",
 			})
 		}
 	}

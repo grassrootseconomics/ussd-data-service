@@ -12,7 +12,6 @@ type (
 	ErrResponse struct {
 		Ok          bool   `json:"ok"`
 		Description string `json:"description"`
-		ErrCode     string `json:"errorCode"`
 	}
 
 	Last10TxResponse struct {

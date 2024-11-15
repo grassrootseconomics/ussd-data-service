@@ -2,11 +2,13 @@ package data
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/grassrootseconomics/ussd-data-service/pkg/api"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/knadh/goyesql/v2"
 )
@@ -91,21 +93,33 @@ func (pg *Pg) TokenHoldings(ctx context.Context, publicAddress string) ([]*api.T
 }
 
 func (pg *Pg) TokenDetails(ctx context.Context, tokenAddress string) (*api.TokenDetails, error) {
-	var tokenDetails *api.TokenDetails
-
-	if err := pgxscan.Select(ctx, pg.db, &tokenDetails, pg.queries.TokenDetails, tokenAddress); err != nil {
+	row, err := pg.db.Query(ctx, pg.queries.TokenDetails, tokenAddress)
+	if err != nil {
 		return nil, err
 	}
 
-	return tokenDetails, nil
+	var tokenDetails api.TokenDetails
+	if err := pgxscan.ScanOne(&tokenDetails, row); errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &tokenDetails, nil
 }
 
 func (pg *Pg) PoolDetails(ctx context.Context, poolAddress string) (*api.PoolDetails, error) {
-	var poolDetails *api.PoolDetails
-
-	if err := pgxscan.Select(ctx, pg.db, &poolDetails, pg.queries.PoolDetails, poolAddress); err != nil {
+	row, err := pg.db.Query(ctx, pg.queries.PoolDetails, poolAddress)
+	if err != nil {
 		return nil, err
 	}
 
-	return poolDetails, nil
+	var poolDetails api.PoolDetails
+	if err := pgxscan.ScanOne(&poolDetails, row); errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &poolDetails, nil
 }

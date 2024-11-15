@@ -23,11 +23,11 @@ OR token_transfer.recipient_address = $1;
 --name: token-details
 -- Fetches token details
 -- $1: token_address
-SELECT * FROM tokens
+SELECT tokens.token_name, tokens.token_symbol, tokens.token_decimals, tokens.sink_address FROM tokens
 WHERE tokens.contract_address = $1;
 
 --name: pool-details
 -- Fetches tpool details
 -- $1: pool_address
-SELECT * FROM pools
+SELECT pools.pool_name, pools.pool_symbol FROM pools
 WHERE pools.contract_address = $1;

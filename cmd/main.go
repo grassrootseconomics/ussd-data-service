@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/grassrootseconomics/ussd-data-service/internal/api"
 	"github.com/grassrootseconomics/ussd-data-service/internal/data"
 	"github.com/grassrootseconomics/ussd-data-service/internal/util"
-	"github.com/grassrootseconomics/ussd-data-service/internal/xapi"
 	"github.com/knadh/koanf/v2"
 )
 
@@ -66,24 +66,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// apiServer := api.New(api.APIOpts{
-	// 	APIKey:        ko.MustString("api.key"),
-	// 	EnableMetrics: ko.Bool("metrics.enable"),
-	// 	ListenAddress: ko.MustString("api.address"),
-	// 	PgDataStore:   pgDataStore,
-	// 	ChainData:     chainData,
-	// 	Logg:          lo,
-	// 	Debug:         true,
-	// })
-
-	apiServer := xapi.New(xapi.APIOpts{
+	apiServer := api.New(api.APIOpts{
 		VerifyingKey:    publicKey,
 		EnableMetrics:   ko.Bool("metrics.enable"),
 		ListenAddress:   ko.MustString("api.address"),
 		PgDataSource:    pgDataStore,
 		ChainDataSource: chainData,
 		Logg:            lo,
-		Debug:           true,
 	})
 
 	wg.Add(1)
