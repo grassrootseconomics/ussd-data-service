@@ -12,5 +12,5 @@ MCowBQYDK2VwAyEAHGCyaM2KW5/S31wd+jHuki2QrQw1pyAFUcz888ekiVA=
 dsn = "postgres://postgres:postgres@127.0.0.1:5432/ge_celo_data"
 
 [chain]
-id = 44787
-rpc_endpoint = "https://cel2.testnet.grassecon.net"
+id = 1337
+rpc_endpoint = "http://localhost:8545"

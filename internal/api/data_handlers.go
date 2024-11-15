@@ -4,30 +4,32 @@ import (
 	"net/http"
 
 	"github.com/grassrootseconomics/ussd-data-service/pkg/api"
-	"github.com/labstack/echo/v4"
+	"github.com/kamikazechaser/common/httputil"
+	"github.com/uptrace/bunrouter"
 )
 
 type PublicAddressParam struct {
-	Address string `param:"address"  validate:"required,eth_addr_checksum"`
+	Address string `validate:"required,eth_addr_checksum"`
 }
 
-func (a *API) last10TxHandler(c echo.Context) error {
-	req := PublicAddressParam{}
-
-	if err := c.Bind(&req); err != nil {
-		return handleBindError(c)
+func (a *API) last10TxHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	r := PublicAddressParam{
+		Address: req.Param("address"),
 	}
 
-	if err := c.Validate(req); err != nil {
-		return handleValidateError(c)
+	if err := a.validator.Validate(r); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
 	}
 
-	last10Tx, err := a.pgDataStore.Last10Tx(c.Request().Context(), req.Address)
+	last10Tx, err := a.pgDataSource.Last10Tx(req.Context(), r.Address)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, api.OKResponse{
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
 		Description: "Last 10 token transfers",
 		Result: map[string]any{
@@ -36,27 +38,28 @@ func (a *API) last10TxHandler(c echo.Context) error {
 	})
 }
 
-func (a *API) tokenHoldingsHandler(c echo.Context) error {
-	req := PublicAddressParam{}
-
-	if err := c.Bind(&req); err != nil {
-		return handleBindError(c)
+func (a *API) tokenHoldingsHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	r := PublicAddressParam{
+		Address: req.Param("address"),
 	}
 
-	if err := c.Validate(req); err != nil {
-		return handleValidateError(c)
+	if err := a.validator.Validate(r); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
 	}
 
-	tokenHoldings, err := a.pgDataStore.TokenHoldings(c.Request().Context(), req.Address)
+	tokenHoldings, err := a.pgDataSource.TokenHoldings(req.Context(), r.Address)
 	if err != nil {
 		return err
 	}
 
-	if err := a.chainData.MergeTokenBalances(c.Request().Context(), tokenHoldings, req.Address); err != nil {
+	if err := a.chainDataSource.MergeTokenBalances(req.Context(), tokenHoldings, r.Address); err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, api.OKResponse{
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
 		Description: "Token holdings with current balances",
 		Result: map[string]any{
@@ -65,6 +68,68 @@ func (a *API) tokenHoldingsHandler(c echo.Context) error {
 	})
 }
 
-func (a *API) tokenDetailsHandler(c echo.Context) error {
-	return nil
+func (a *API) tokenDetailsHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	r := PublicAddressParam{
+		Address: req.Param("address"),
+	}
+
+	if err := a.validator.Validate(r); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+	tokenDetails, err := a.pgDataSource.TokenDetails(req.Context(), r.Address)
+	if err != nil {
+		a.logg.Error("Failed to get token details", "error", err)
+		return err
+	}
+
+	if tokenDetails == nil {
+		tokenDetails, err = a.chainDataSource.TokenDetails(req.Context(), r.Address)
+		if err != nil {
+			return err
+		}
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Token details",
+		Result: map[string]any{
+			"tokenDetails": tokenDetails,
+		},
+	})
+}
+
+func (a *API) poolDetailsHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	r := PublicAddressParam{
+		Address: req.Param("address"),
+	}
+
+	if err := a.validator.Validate(r); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+
+	poolDetails, err := a.pgDataSource.PoolDetails(req.Context(), r.Address)
+	if err != nil {
+		return err
+	}
+
+	if poolDetails == nil {
+		poolDetails, err = a.chainDataSource.PoolDetails(req.Context(), r.Address)
+		if err != nil {
+			return err
+		}
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Token details",
+		Result: map[string]any{
+			"poolDetails": poolDetails,
+		},
+	})
 }
