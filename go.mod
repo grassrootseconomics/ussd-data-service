@@ -14,9 +14,9 @@ require (
 	github.com/knadh/goyesql/v2 v2.2.0
 	github.com/knadh/koanf/parsers/toml v0.1.0
 	github.com/knadh/koanf/providers/env v1.0.0
-	github.com/knadh/koanf/providers/file v1.1.1
-	github.com/knadh/koanf/v2 v2.1.1
-	github.com/lmittmann/w3 v0.17.0
+	github.com/knadh/koanf/providers/file v1.1.2
+	github.com/knadh/koanf/v2 v2.1.2
+	github.com/lmittmann/w3 v0.17.1
 	github.com/uptrace/bunrouter v1.0.22
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.22
 )
@@ -40,7 +40,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.22.1 // indirect
-	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -69,6 +69,6 @@ require (
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
-	golang.org/x/time v0.6.0 // indirect
+	golang.org/x/time v0.7.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
