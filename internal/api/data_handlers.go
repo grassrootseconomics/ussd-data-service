@@ -8,9 +8,16 @@ import (
 	"github.com/uptrace/bunrouter"
 )
 
-type PublicAddressParam struct {
-	Address string `validate:"required,eth_addr_checksum"`
-}
+type (
+	PublicAddressParam struct {
+		Address string `validate:"required,eth_addr_checksum"`
+	}
+
+	AliasParam struct {
+		// TODO: Add extra validations here
+		Alias string `validate:"required"`
+	}
+)
 
 func (a *API) last10TxHandler(w http.ResponseWriter, req bunrouter.Request) error {
 	r := PublicAddressParam{
@@ -92,6 +99,10 @@ func (a *API) tokenDetailsHandler(w http.ResponseWriter, req bunrouter.Request) 
 		}
 	}
 
+	// TODO: Implement graph resolver via fdw
+	tokenDetails.CommodityName = "Farming"
+	tokenDetails.Location = "Nairobi, Kenya"
+
 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
 		Description: "Token details",
@@ -130,6 +141,32 @@ func (a *API) poolDetailsHandler(w http.ResponseWriter, req bunrouter.Request) e
 		Description: "Token details",
 		Result: map[string]any{
 			"poolDetails": poolDetails,
+		},
+	})
+}
+
+func (a *API) aliasHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	r := AliasParam{
+		Alias: req.Param("alias"),
+	}
+
+	if err := a.validator.Validate(r); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Alias validation failed",
+		})
+	}
+
+	aliasAddress, err := a.pgDataSource.ResolveAlias(req.Context(), r.Alias)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Alias address",
+		Result: map[string]any{
+			"address": aliasAddress.Address,
 		},
 	})
 }

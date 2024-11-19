@@ -37,10 +37,16 @@ type (
 		TokenDecimals uint8  `json:"tokenDecimals" db:"token_decimals"`
 		SinkAddress   string `json:"sinkAddress" db:"sink_address"`
 		TokenName     string `json:"tokenName" db:"token_name"`
+		CommodityName string `json:"tokenCommodity" db:"commodity_name"`
+		Location      string `json:"tokenLocation" db:"location_name"`
 	}
 
 	PoolDetails struct {
 		PoolName   string `json:"poolName" db:"pool_name"`
 		PoolSymbol string `json:"poolSymbol" db:"pool_symbol"`
+	}
+
+	AliasAddress struct {
+		Address string `json:"address" db:"blockchain_address"`
 	}
 )

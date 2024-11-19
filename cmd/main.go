@@ -15,6 +15,7 @@ import (
 	"github.com/grassrootseconomics/ussd-data-service/internal/api"
 	"github.com/grassrootseconomics/ussd-data-service/internal/data"
 	"github.com/grassrootseconomics/ussd-data-service/internal/util"
+	"github.com/knadh/goyesql/v2"
 	"github.com/knadh/koanf/v2"
 )
 
@@ -45,10 +46,16 @@ func main() {
 	var wg sync.WaitGroup
 	ctx, stop := notifyShutdown()
 
-	pgDataStore, err := data.NewPgStore(data.PgOpts{
-		Logg:              lo,
-		DSN:               ko.MustString("postgres.dsn"),
-		QueriesFolderPath: queriesFlag,
+	pgQueries, err := loadQueries(queriesFlag)
+	if err != nil {
+		lo.Error("could not load queries", "error", err)
+		os.Exit(1)
+	}
+
+	pgChainDataStore, err := data.NewPgChainDataSource(data.PgChainDataOpts{
+		Logg:    lo,
+		DSN:     ko.MustString("postgres.chain_data_dsn"),
+		Queries: pgQueries,
 	})
 	if err != nil {
 		lo.Error("could not initialize postgres store", "error", err)
@@ -70,7 +77,7 @@ func main() {
 		VerifyingKey:    publicKey,
 		EnableMetrics:   ko.Bool("metrics.enable"),
 		ListenAddress:   ko.MustString("api.address"),
-		PgDataSource:    pgDataStore,
+		PgDataSource:    pgChainDataStore,
 		ChainDataSource: chainData,
 		Logg:            lo,
 	})
@@ -114,4 +121,19 @@ func main() {
 
 func notifyShutdown() (context.Context, context.CancelFunc) {
 	return signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+}
+
+func loadQueries(queriesPath string) (*data.PgQueries, error) {
+	parsedQueries, err := goyesql.ParseFile(queriesPath)
+	if err != nil {
+		return nil, err
+	}
+
+	loadedQueries := &data.PgQueries{}
+
+	if err := goyesql.ScanToStruct(loadedQueries, parsedQueries, nil); err != nil {
+		return nil, fmt.Errorf("failed to scan queries %v", err)
+	}
+
+	return loadedQueries, nil
 }

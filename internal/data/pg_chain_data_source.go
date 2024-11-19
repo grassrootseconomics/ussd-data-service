@@ -3,38 +3,30 @@ package data
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/grassrootseconomics/ethutils"
 	"github.com/grassrootseconomics/ussd-data-service/pkg/api"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/knadh/goyesql/v2"
 )
 
 type (
-	Queries struct {
-		Last10Tx      string `query:"last-10-tx"`
-		TokenHoldings string `query:"token-holdings"`
-		TokenDetails  string `query:"token-details"`
-		PoolDetails   string `query:"pool-details"`
+	PgChainDataOpts struct {
+		Logg    *slog.Logger
+		DSN     string
+		Queries *PgQueries
 	}
 
-	PgOpts struct {
-		Logg              *slog.Logger
-		DSN               string
-		QueriesFolderPath string
-	}
-
-	Pg struct {
+	PgChainData struct {
 		logg    *slog.Logger
 		db      *pgxpool.Pool
-		queries *Queries
+		queries *PgQueries
 	}
 )
 
-func NewPgStore(o PgOpts) (*Pg, error) {
+func NewPgChainDataSource(o PgChainDataOpts) (*PgChainData, error) {
 	parsedConfig, err := pgxpool.ParseConfig(o.DSN)
 	if err != nil {
 		return nil, err
@@ -45,34 +37,14 @@ func NewPgStore(o PgOpts) (*Pg, error) {
 		return nil, err
 	}
 
-	queries, err := loadQueries(o.QueriesFolderPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Pg{
+	return &PgChainData{
 		logg:    o.Logg,
 		db:      dbPool,
-		queries: queries,
+		queries: o.Queries,
 	}, nil
 }
 
-func loadQueries(queriesPath string) (*Queries, error) {
-	parsedQueries, err := goyesql.ParseFile(queriesPath)
-	if err != nil {
-		return nil, err
-	}
-
-	loadedQueries := &Queries{}
-
-	if err := goyesql.ScanToStruct(loadedQueries, parsedQueries, nil); err != nil {
-		return nil, fmt.Errorf("failed to scan queries %v", err)
-	}
-
-	return loadedQueries, nil
-}
-
-func (pg *Pg) Last10Tx(ctx context.Context, publicAddress string) ([]*api.Last10TxResponse, error) {
+func (pg *PgChainData) Last10Tx(ctx context.Context, publicAddress string) ([]*api.Last10TxResponse, error) {
 	var last10Tx []*api.Last10TxResponse
 
 	if err := pgxscan.Select(ctx, pg.db, &last10Tx, pg.queries.Last10Tx, publicAddress); err != nil {
@@ -82,7 +54,7 @@ func (pg *Pg) Last10Tx(ctx context.Context, publicAddress string) ([]*api.Last10
 	return last10Tx, nil
 }
 
-func (pg *Pg) TokenHoldings(ctx context.Context, publicAddress string) ([]*api.TokenHoldings, error) {
+func (pg *PgChainData) TokenHoldings(ctx context.Context, publicAddress string) ([]*api.TokenHoldings, error) {
 	var tokenHoldings []*api.TokenHoldings
 
 	if err := pgxscan.Select(ctx, pg.db, &tokenHoldings, pg.queries.TokenHoldings, publicAddress); err != nil {
@@ -92,7 +64,14 @@ func (pg *Pg) TokenHoldings(ctx context.Context, publicAddress string) ([]*api.T
 	return tokenHoldings, nil
 }
 
-func (pg *Pg) TokenDetails(ctx context.Context, tokenAddress string) (*api.TokenDetails, error) {
+func (pg *PgChainData) ResolveAlias(ctx context.Context, alias string) (*api.AliasAddress, error) {
+	// TODO: Implement graph resolver via fdw
+	return &api.AliasAddress{
+		Address: ethutils.ZeroAddress.Hex(),
+	}, nil
+}
+
+func (pg *PgChainData) TokenDetails(ctx context.Context, tokenAddress string) (*api.TokenDetails, error) {
 	row, err := pg.db.Query(ctx, pg.queries.TokenDetails, tokenAddress)
 	if err != nil {
 		return nil, err
@@ -108,7 +87,7 @@ func (pg *Pg) TokenDetails(ctx context.Context, tokenAddress string) (*api.Token
 	return &tokenDetails, nil
 }
 
-func (pg *Pg) PoolDetails(ctx context.Context, poolAddress string) (*api.PoolDetails, error) {
+func (pg *PgChainData) PoolDetails(ctx context.Context, poolAddress string) (*api.PoolDetails, error) {
 	row, err := pg.db.Query(ctx, pg.queries.PoolDetails, poolAddress)
 	if err != nil {
 		return nil, err

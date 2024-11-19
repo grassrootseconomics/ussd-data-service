@@ -20,7 +20,7 @@ type (
 		EnableMetrics   bool
 		ListenAddress   string
 		Logg            *slog.Logger
-		PgDataSource    *data.Pg
+		PgDataSource    *data.PgChainData
 		ChainDataSource *data.Chain
 	}
 
@@ -30,7 +30,7 @@ type (
 		router          *bunrouter.Router
 		server          *http.Server
 		logg            *slog.Logger
-		pgDataSource    *data.Pg
+		pgDataSource    *data.PgChainData
 		chainDataSource *data.Chain
 	}
 )
@@ -68,6 +68,7 @@ func New(o APIOpts) *API {
 		g.GET("/holdings/:address", api.tokenHoldingsHandler)
 		g.GET("/token/:address", api.tokenDetailsHandler)
 		g.GET("/pool/:address", api.poolDetailsHandler)
+		g.GET("/alias/:alias", api.aliasHandler)
 	})
 
 	api.server = &http.Server{
