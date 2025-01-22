@@ -4,7 +4,7 @@ import (
 	"crypto"
 	"crypto/ed25519"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func LoadSigningKey(publicKeyPem string) (crypto.PublicKey, error) {

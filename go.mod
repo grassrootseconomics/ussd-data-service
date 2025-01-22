@@ -6,7 +6,6 @@ require (
 	github.com/VictoriaMetrics/metrics v1.35.1
 	github.com/ethereum/go-ethereum v1.14.8
 	github.com/georgysavva/scany/v2 v2.1.3
-	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grassrootseconomics/ethutils v1.3.1
 	github.com/jackc/pgx/v5 v5.7.1
