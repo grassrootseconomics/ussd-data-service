@@ -29,5 +29,11 @@ WHERE tokens.contract_address = $1;
 --name: pool-details
 -- Fetches tpool details
 -- $1: pool_address
-SELECT pools.pool_name, pools.pool_symbol FROM pools
+SELECT pools.pool_name, pools.pool_symbol, pools.contract_address FROM pools
 WHERE pools.contract_address = $1;
+
+--name: pool-reverse-details
+-- Fetches pool details
+-- $1: pool_symbol
+SELECT pools.pool_name, pools.pool_symbol, pools.contract_address FROM pools
+WHERE pools.pool_symbol = $1;

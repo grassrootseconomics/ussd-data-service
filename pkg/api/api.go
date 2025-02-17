@@ -42,8 +42,9 @@ type (
 	}
 
 	PoolDetails struct {
-		PoolName   string `json:"poolName" db:"pool_name"`
-		PoolSymbol string `json:"poolSymbol" db:"pool_symbol"`
+		PoolName            string `json:"poolName" db:"pool_name"`
+		PoolSymbol          string `json:"poolSymbol" db:"pool_symbol"`
+		PoolContractAdrress string `json:"poolContractAddress" db:"contract_address"`
 	}
 
 	AliasAddress struct {

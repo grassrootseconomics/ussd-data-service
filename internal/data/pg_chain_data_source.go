@@ -102,3 +102,19 @@ func (pg *PgChainData) PoolDetails(ctx context.Context, poolAddress string) (*ap
 
 	return &poolDetails, nil
 }
+
+func (pg *PgChainData) PoolReverseDetails(ctx context.Context, poolSymbol string) (*api.PoolDetails, error) {
+	row, err := pg.db.Query(ctx, pg.queries.PoolReverseDetails, poolSymbol)
+	if err != nil {
+		return nil, err
+	}
+
+	var poolDetails api.PoolDetails
+	if err := pgxscan.ScanOne(&poolDetails, row); errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &poolDetails, nil
+}

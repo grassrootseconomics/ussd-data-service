@@ -68,6 +68,7 @@ func New(o APIOpts) *API {
 		g.GET("/holdings/:address", api.tokenHoldingsHandler)
 		g.GET("/token/:address", api.tokenDetailsHandler)
 		g.GET("/pool/:address", api.poolDetailsHandler)
+		g.GET("/pool/reverse/:symbol", api.poolReverseDetailsHandler)
 		g.GET("/alias/:alias", api.aliasHandler)
 	})
 

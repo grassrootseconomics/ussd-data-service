@@ -13,6 +13,10 @@ type (
 		Address string `validate:"required,eth_addr_checksum"`
 	}
 
+	SymbolParam struct {
+		Symbol string `validate:"required"`
+	}
+
 	AliasParam struct {
 		// TODO: Add extra validations here
 		Alias string `validate:"required"`
@@ -138,7 +142,41 @@ func (a *API) poolDetailsHandler(w http.ResponseWriter, req bunrouter.Request) e
 
 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
-		Description: "Token details",
+		Description: "Pool details",
+		Result: map[string]any{
+			"poolDetails": poolDetails,
+		},
+	})
+}
+
+func (a *API) poolReverseDetailsHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	r := SymbolParam{
+		Symbol: req.Param("symbol"),
+	}
+
+	if err := a.validator.Validate(r); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+
+	poolDetails, err := a.pgDataSource.PoolReverseDetails(req.Context(), r.Symbol)
+	if err != nil {
+		a.logg.Debug("Failed to get pool details", "error", err)
+		return err
+	}
+
+	if poolDetails == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Pool not found",
+		})
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Pool details",
 		Result: map[string]any{
 			"poolDetails": poolDetails,
 		},
