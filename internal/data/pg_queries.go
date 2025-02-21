@@ -6,4 +6,5 @@ type PgQueries struct {
 	TokenDetails       string `query:"token-details"`
 	PoolDetails        string `query:"pool-details"`
 	PoolReverseDetails string `query:"pool-reverse-details"`
+	TopPools           string `query:"top-active-pools"`
 }

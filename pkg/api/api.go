@@ -23,6 +23,7 @@ type (
 		DateBlock       time.Time `json:"dateBlock" db:"date_block"`
 		TokenSymbol     string    `json:"tokenSymbol" db:"token_symbol"`
 		TokenDecimals   string    `json:"tokenDecimals" db:"token_decimals"`
+		Success         bool      `json:"success" db:"success"`
 	}
 
 	TokenHoldings struct {
@@ -45,6 +46,8 @@ type (
 		PoolName            string `json:"poolName" db:"pool_name"`
 		PoolSymbol          string `json:"poolSymbol" db:"pool_symbol"`
 		PoolContractAdrress string `json:"poolContractAddress" db:"contract_address"`
+		LimiterAddress      string `json:"limiterAddress"`
+		VoucherRegistry     string `json:"voucherRegistry"`
 	}
 
 	AliasAddress struct {

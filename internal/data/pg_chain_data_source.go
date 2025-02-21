@@ -118,3 +118,13 @@ func (pg *PgChainData) PoolReverseDetails(ctx context.Context, poolSymbol string
 
 	return &poolDetails, nil
 }
+
+func (pg *PgChainData) TopPools(ctx context.Context) ([]*api.PoolDetails, error) {
+	var topPools []*api.PoolDetails
+
+	if err := pgxscan.Select(ctx, pg.db, &topPools, pg.queries.TopPools); err != nil {
+		return nil, err
+	}
+
+	return topPools, nil
+}

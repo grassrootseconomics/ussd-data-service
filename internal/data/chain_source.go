@@ -26,10 +26,12 @@ type (
 )
 
 var (
-	nameGetter        = w3.MustNewFunc("name()", "string")
-	symbolGetter      = w3.MustNewFunc("symbol()", "string")
-	decimalsGetter    = w3.MustNewFunc("decimals()", "uint8")
-	sinkAddressGetter = w3.MustNewFunc("sinkAddress()", "address")
+	nameGetter            = w3.MustNewFunc("name()", "string")
+	symbolGetter          = w3.MustNewFunc("symbol()", "string")
+	decimalsGetter        = w3.MustNewFunc("decimals()", "uint8")
+	sinkAddressGetter     = w3.MustNewFunc("sinkAddress()", "address")
+	limiterAddressGetter  = w3.MustNewFunc("tokenLimiter()", "address")
+	registryAddressGetter = w3.MustNewFunc("tokenRegistry()", "address")
 )
 
 func NewChainProvider(o ChainOpts) *Chain {
@@ -104,8 +106,10 @@ func (c *Chain) PoolDetails(ctx context.Context, input string) (*api.PoolDetails
 	contractAddress := w3.A(input)
 
 	var (
-		poolName   string
-		poolSymbol string
+		poolName             string
+		poolSymbol           string
+		tokenRegistryAddress common.Address
+		limiterAddress       common.Address
 
 		batchErr w3.CallErrors
 	)
@@ -114,6 +118,8 @@ func (c *Chain) PoolDetails(ctx context.Context, input string) (*api.PoolDetails
 		ctx,
 		eth.CallFunc(contractAddress, nameGetter).Returns(&poolName),
 		eth.CallFunc(contractAddress, symbolGetter).Returns(&poolSymbol),
+		eth.CallFunc(contractAddress, registryAddressGetter).Returns(&tokenRegistryAddress),
+		eth.CallFunc(contractAddress, limiterAddressGetter).Returns(&limiterAddress),
 	); errors.As(err, &batchErr) {
 		return nil, batchErr
 	} else if err != nil {
@@ -121,7 +127,10 @@ func (c *Chain) PoolDetails(ctx context.Context, input string) (*api.PoolDetails
 	}
 
 	return &api.PoolDetails{
-		PoolName:   poolName,
-		PoolSymbol: poolSymbol,
+		PoolName:            poolName,
+		PoolSymbol:          poolSymbol,
+		PoolContractAdrress: input,
+		LimiterAddress:      limiterAddress.Hex(),
+		VoucherRegistry:     tokenRegistryAddress.Hex(),
 	}, nil
 }

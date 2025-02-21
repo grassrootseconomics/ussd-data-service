@@ -17,6 +17,11 @@ type (
 		Symbol string `validate:"required"`
 	}
 
+	PoolVoucherList struct {
+		UserAddress string `validate:"required,eth_addr_checksum"`
+		PoolAddress string `validate:"required,eth_addr_checksum"`
+	}
+
 	AliasParam struct {
 		// TODO: Add extra validations here
 		Alias string `validate:"required"`
@@ -162,6 +167,57 @@ func (a *API) poolReverseDetailsHandler(w http.ResponseWriter, req bunrouter.Req
 	}
 
 	poolDetails, err := a.pgDataSource.PoolReverseDetails(req.Context(), r.Symbol)
+	if err != nil {
+		a.logg.Debug("Failed to get pool details", "error", err)
+		return err
+	}
+
+	if poolDetails == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Pool not found",
+		})
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Pool details",
+		Result: map[string]any{
+			"poolDetails": poolDetails,
+		},
+	})
+}
+
+func (a *API) topPoolsHandlder(w http.ResponseWriter, req bunrouter.Request) error {
+	topPools, err := a.pgDataSource.TopPools(req.Context())
+	if err != nil {
+		a.logg.Debug("Failed to get pool details", "error", err)
+		return err
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Top 5 pools sorted by swaps",
+		Result: map[string]any{
+			"topPools": topPools,
+		},
+	})
+}
+
+func (a *API) poolSwapFromVouchersList(w http.ResponseWriter, req bunrouter.Request) error {
+	u := PoolVoucherList{
+		UserAddress: req.Param("address"),
+		PoolAddress: req.Param("pool"),
+	}
+
+	if err := a.validator.Validate(u); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+
+	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
 	if err != nil {
 		a.logg.Debug("Failed to get pool details", "error", err)
 		return err
