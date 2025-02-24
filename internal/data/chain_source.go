@@ -10,6 +10,7 @@ import (
 	"github.com/grassrootseconomics/ussd-data-service/pkg/api"
 	"github.com/lmittmann/w3"
 	"github.com/lmittmann/w3/module/eth"
+	"github.com/lmittmann/w3/w3types"
 )
 
 type (
@@ -32,6 +33,7 @@ var (
 	sinkAddressGetter     = w3.MustNewFunc("sinkAddress()", "address")
 	limiterAddressGetter  = w3.MustNewFunc("tokenLimiter()", "address")
 	registryAddressGetter = w3.MustNewFunc("tokenRegistry()", "address")
+	exists                = w3.MustNewFunc("have(address)", "bool")
 )
 
 func NewChainProvider(o ChainOpts) *Chain {
@@ -133,4 +135,68 @@ func (c *Chain) PoolDetails(ctx context.Context, input string) (*api.PoolDetails
 		LimiterAddress:      limiterAddress.Hex(),
 		VoucherRegistry:     tokenRegistryAddress.Hex(),
 	}, nil
+}
+
+// func (c *Chain) Limits(ctx context.Context, in string, out string) (*api.PoolDetails, error) {
+// 	contractAddress := w3.A(input)
+
+// 	var (
+// 		poolName             string
+// 		poolSymbol           string
+// 		tokenRegistryAddress common.Address
+// 		limiterAddress       common.Address
+
+// 		batchErr w3.CallErrors
+// 	)
+
+// 	if err := c.chain.Client.CallCtx(
+// 		ctx,
+// 		eth.CallFunc(contractAddress, nameGetter).Returns(&poolName),
+// 		eth.CallFunc(contractAddress, symbolGetter).Returns(&poolSymbol),
+// 		eth.CallFunc(contractAddress, registryAddressGetter).Returns(&tokenRegistryAddress),
+// 		eth.CallFunc(contractAddress, limiterAddressGetter).Returns(&limiterAddress),
+// 	); errors.As(err, &batchErr) {
+// 		return nil, batchErr
+// 	} else if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &api.PoolDetails{
+// 		PoolName:            poolName,
+// 		PoolSymbol:          poolSymbol,
+// 		PoolContractAdrress: input,
+// 		LimiterAddress:      limiterAddress.Hex(),
+// 		VoucherRegistry:     tokenRegistryAddress.Hex(),
+// 	}, nil
+// }
+
+// This is very inefficent beacuse of round trips. But it is the only way to do it for now.
+func (c *Chain) TokensExistsInIndex(ctx context.Context, index string, input []*api.TokenHoldings) ([]*api.TokenHoldings, error) {
+	calls := make([]w3types.RPCCaller, len(input))
+	resp := make([]bool, len(input))
+
+	for i, holding := range input {
+		calls[i] = eth.CallFunc(common.HexToAddress(index), exists, common.HexToAddress(holding.ContractAddress)).Returns(&resp[i])
+	}
+
+	var batchErr w3.CallErrors
+
+	if err := c.chain.Client.CallCtx(
+		ctx,
+		calls...,
+	); errors.As(err, &batchErr) {
+		return nil, batchErr
+	} else if err != nil {
+		return nil, err
+	}
+
+	j := 0
+	for i := 0; i < len(input); i++ {
+		if resp[i] {
+			input[j] = input[i]
+			j++
+		}
+	}
+	input = input[:j]
+	return input, nil
 }

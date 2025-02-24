@@ -7,4 +7,5 @@ type PgQueries struct {
 	PoolDetails        string `query:"pool-details"`
 	PoolReverseDetails string `query:"pool-reverse-details"`
 	TopPools           string `query:"top-active-pools"`
+	Stables            string `query:"stables"`
 }

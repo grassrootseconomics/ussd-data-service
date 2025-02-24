@@ -71,6 +71,8 @@ func New(o APIOpts) *API {
 		g.GET("/pool/reverse/:symbol", api.poolReverseDetailsHandler)
 		g.GET("/pool/top", api.topPoolsHandlder)
 		g.GET("/pool/:pool/from/:address", api.poolSwapFromVouchersList)
+		g.GET("/pool/:pool/to/:address", api.poolSwapToVouchersList)
+		// g.GET("/pool/:pool/lmits/:from/:to/:address", api.poolLimits)
 		g.GET("/alias/:alias", api.aliasHandler)
 	})
 

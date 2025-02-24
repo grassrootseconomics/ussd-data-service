@@ -128,3 +128,13 @@ func (pg *PgChainData) TopPools(ctx context.Context) ([]*api.PoolDetails, error)
 
 	return topPools, nil
 }
+
+func (pg *PgChainData) Stables(ctx context.Context) ([]*api.TokenHoldings, error) {
+	var stables []*api.TokenHoldings
+
+	if err := pgxscan.Select(ctx, pg.db, &stables, pg.queries.Stables); err != nil {
+		return nil, err
+	}
+
+	return stables, nil
+}

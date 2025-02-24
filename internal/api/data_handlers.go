@@ -22,6 +22,13 @@ type (
 		PoolAddress string `validate:"required,eth_addr_checksum"`
 	}
 
+	PoolLimits struct {
+		PoolAddress string `validate:"required,eth_addr_checksum"`
+		UserAddress string `validate:"required,eth_addr_checksum"`
+		FromToken   string `validate:"required,eth_addr_checksum"`
+		ToToken     string `validate:"required,eth_addr_checksum"`
+	}
+
 	AliasParam struct {
 		// TODO: Add extra validations here
 		Alias string `validate:"required"`
@@ -230,14 +237,116 @@ func (a *API) poolSwapFromVouchersList(w http.ResponseWriter, req bunrouter.Requ
 		})
 	}
 
+	tokenHoldings, err := a.pgDataSource.TokenHoldings(req.Context(), u.UserAddress)
+	if err != nil {
+		return err
+	}
+
+	filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, tokenHoldings)
+	if err != nil {
+		return err
+	}
+
 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
-		Description: "Pool details",
+		Description: "Swap from list",
 		Result: map[string]any{
-			"poolDetails": poolDetails,
+			"filtered": filtered,
 		},
 	})
 }
+
+func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Request) error {
+	u := PoolVoucherList{
+		UserAddress: req.Param("address"),
+		PoolAddress: req.Param("pool"),
+	}
+
+	if err := a.validator.Validate(u); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+
+	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+	if err != nil {
+		a.logg.Debug("Failed to get pool details", "error", err)
+		return err
+	}
+
+	if poolDetails == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Pool not found",
+		})
+	}
+
+	stables, err := a.pgDataSource.Stables(req.Context())
+	if err != nil {
+		return err
+	}
+
+	filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, stables)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Swap to list",
+		Result: map[string]any{
+			"filtered": filtered,
+		},
+	})
+}
+
+// func (a *API) poolLimits(w http.ResponseWriter, req bunrouter.Request) error {
+// 	u := PoolLimits{
+// 		PoolAddress: req.Param("pool"),
+// 		UserAddress: req.Param("address"),
+// 		FromToken:   req.Param("from"),
+// 		ToToken:     req.Param("to"),
+// 	}
+
+// 	if err := a.validator.Validate(u); err != nil {
+// 		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+// 			Ok:          false,
+// 			Description: "Address validation failed",
+// 		})
+// 	}
+
+// 	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+// 	if err != nil {
+// 		a.logg.Debug("Failed to get pool details", "error", err)
+// 		return err
+// 	}
+
+// 	if poolDetails == nil {
+// 		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+// 			Ok:          false,
+// 			Description: "Pool not found",
+// 		})
+// 	}
+
+// 	tokenHoldings, err := a.pgDataSource.TokenHoldings(req.Context(), u.UserAddress)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, tokenHoldings)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+// 		Ok:          true,
+// 		Description: "Swap from list",
+// 		Result: map[string]any{
+// 			"filtered": filtered,
+// 		},
+// 	})
+// }
 
 func (a *API) aliasHandler(w http.ResponseWriter, req bunrouter.Request) error {
 	r := AliasParam{

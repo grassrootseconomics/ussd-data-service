@@ -67,3 +67,7 @@ FROM (
 ) sub
 ORDER BY sub.swap_count DESC
 LIMIT 5;
+
+--name: stables
+SELECT contract_address, token_symbol, token_decimals FROM tokens
+WHERE token_symbol = 'cUSD' OR token_symbol = 'cKES'
