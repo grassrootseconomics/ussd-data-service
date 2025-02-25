@@ -301,52 +301,54 @@ func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Reques
 	})
 }
 
-// func (a *API) poolLimits(w http.ResponseWriter, req bunrouter.Request) error {
-// 	u := PoolLimits{
-// 		PoolAddress: req.Param("pool"),
-// 		UserAddress: req.Param("address"),
-// 		FromToken:   req.Param("from"),
-// 		ToToken:     req.Param("to"),
-// 	}
+func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
+	u := PoolLimits{
+		PoolAddress: req.Param("pool"),
+		UserAddress: req.Param("address"),
+		FromToken:   req.Param("from"),
+		ToToken:     req.Param("to"),
+	}
 
-// 	if err := a.validator.Validate(u); err != nil {
-// 		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
-// 			Ok:          false,
-// 			Description: "Address validation failed",
-// 		})
-// 	}
+	if err := a.validator.Validate(u); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
 
-// 	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
-// 	if err != nil {
-// 		a.logg.Debug("Failed to get pool details", "error", err)
-// 		return err
-// 	}
+	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+	if err != nil {
+		a.logg.Debug("Failed to get pool details", "error", err)
+		return err
+	}
 
-// 	if poolDetails == nil {
-// 		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
-// 			Ok:          false,
-// 			Description: "Pool not found",
-// 		})
-// 	}
+	if poolDetails == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Pool not found",
+		})
+	}
 
-// 	tokenHoldings, err := a.pgDataSource.TokenHoldings(req.Context(), u.UserAddress)
-// 	if err != nil {
-// 		return err
-// 	}
+	maxLimit, err := a.chainDataSource.MaxLimit(
+		req.Context(),
+		u.UserAddress,
+		u.PoolAddress,
+		poolDetails.LimiterAddress,
+		u.FromToken,
+		u.ToToken,
+	)
+	if err != nil {
+		return err
+	}
 
-// 	filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, tokenHoldings)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
-// 		Ok:          true,
-// 		Description: "Swap from list",
-// 		Result: map[string]any{
-// 			"filtered": filtered,
-// 		},
-// 	})
-// }
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "From token max limit",
+		Result: map[string]any{
+			"max": maxLimit.String(),
+		},
+	})
+}
 
 func (a *API) aliasHandler(w http.ResponseWriter, req bunrouter.Request) error {
 	r := AliasParam{

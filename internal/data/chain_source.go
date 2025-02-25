@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/grassrootseconomics/ethutils"
@@ -34,6 +35,8 @@ var (
 	limiterAddressGetter  = w3.MustNewFunc("tokenLimiter()", "address")
 	registryAddressGetter = w3.MustNewFunc("tokenRegistry()", "address")
 	exists                = w3.MustNewFunc("have(address)", "bool")
+	balanceOf             = w3.MustNewFunc("balanceOf(address)", "uint256")
+	limitOf               = w3.MustNewFunc("limitOf(address, address)", "uint256")
 )
 
 func NewChainProvider(o ChainOpts) *Chain {
@@ -137,38 +140,28 @@ func (c *Chain) PoolDetails(ctx context.Context, input string) (*api.PoolDetails
 	}, nil
 }
 
-// func (c *Chain) Limits(ctx context.Context, in string, out string) (*api.PoolDetails, error) {
-// 	contractAddress := w3.A(input)
+func (c *Chain) MaxLimit(ctx context.Context, initator string, poolAddress string, limiterAddress string, inToken string, outToken string) (*big.Int, error) {
+	var (
+		initiatorInTokenBalance *big.Int
+		outTokenBalance         *big.Int
+		inTokenLimit            *big.Int
 
-// 	var (
-// 		poolName             string
-// 		poolSymbol           string
-// 		tokenRegistryAddress common.Address
-// 		limiterAddress       common.Address
+		batchErr w3.CallErrors
+	)
 
-// 		batchErr w3.CallErrors
-// 	)
+	if err := c.chain.Client.CallCtx(
+		ctx,
+		eth.CallFunc(common.HexToAddress(inToken), balanceOf, common.HexToAddress(initator)).Returns(&initiatorInTokenBalance),
+		eth.CallFunc(common.HexToAddress(outToken), balanceOf, common.HexToAddress(poolAddress)).Returns(&outTokenBalance),
+		eth.CallFunc(common.HexToAddress(limiterAddress), limitOf, common.HexToAddress(inToken), common.HexToAddress(poolAddress)).Returns(&inTokenLimit),
+	); errors.As(err, &batchErr) {
+		return nil, batchErr
+	} else if err != nil {
+		return nil, err
+	}
 
-// 	if err := c.chain.Client.CallCtx(
-// 		ctx,
-// 		eth.CallFunc(contractAddress, nameGetter).Returns(&poolName),
-// 		eth.CallFunc(contractAddress, symbolGetter).Returns(&poolSymbol),
-// 		eth.CallFunc(contractAddress, registryAddressGetter).Returns(&tokenRegistryAddress),
-// 		eth.CallFunc(contractAddress, limiterAddressGetter).Returns(&limiterAddress),
-// 	); errors.As(err, &batchErr) {
-// 		return nil, batchErr
-// 	} else if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &api.PoolDetails{
-// 		PoolName:            poolName,
-// 		PoolSymbol:          poolSymbol,
-// 		PoolContractAdrress: input,
-// 		LimiterAddress:      limiterAddress.Hex(),
-// 		VoucherRegistry:     tokenRegistryAddress.Hex(),
-// 	}, nil
-// }
+	return min([]*big.Int{inTokenLimit, initiatorInTokenBalance, outTokenBalance}), nil
+}
 
 // This is very inefficent beacuse of round trips. But it is the only way to do it for now.
 func (c *Chain) TokensExistsInIndex(ctx context.Context, index string, input []*api.TokenHoldings) ([]*api.TokenHoldings, error) {
@@ -199,4 +192,20 @@ func (c *Chain) TokensExistsInIndex(ctx context.Context, index string, input []*
 	}
 	input = input[:j]
 	return input, nil
+}
+
+func min(values []*big.Int) *big.Int {
+	if len(values) == 0 {
+		return nil
+	}
+
+	min := new(big.Int).Set(values[0])
+
+	for _, val := range values[1:] {
+		if val.Cmp(min) < 0 {
+			min.Set(val)
+		}
+	}
+
+	return min
 }
