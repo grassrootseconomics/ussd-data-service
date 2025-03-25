@@ -82,11 +82,12 @@ func (a *API) tokenHoldingsHandler(w http.ResponseWriter, req bunrouter.Request)
 		return err
 	}
 
+	// TODO: Remove this dirtyfix
 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
 		Description: "Token holdings with current balances",
 		Result: map[string]any{
-			"holdings": tokenHoldings,
+			"holdings": tokenHoldings[:5],
 		},
 	})
 }
