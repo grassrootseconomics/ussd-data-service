@@ -82,11 +82,6 @@ func (a *API) tokenHoldingsHandler(w http.ResponseWriter, req bunrouter.Request)
 		return err
 	}
 
-	// TODO: Remove this dirtyfix
-	if len(tokenHoldings) > 10 {
-		tokenHoldings = tokenHoldings[:10]
-	}
-
 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
 		Description: "Token holdings with current balances",
