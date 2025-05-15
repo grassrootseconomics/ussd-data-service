@@ -209,3 +209,16 @@ func min(values []*big.Int) *big.Int {
 
 	return min
 }
+
+func (c *Chain) TokenExistsInIndex(ctx context.Context, index string, tokenAddress string) (bool, error) {
+	var existsResp bool
+
+	err := c.chain.Client.CallCtx(
+		ctx,
+		eth.CallFunc(common.HexToAddress(index), exists, common.HexToAddress(tokenAddress)).Returns(&existsResp),
+	)
+	if err != nil {
+		return false, err
+	}
+	return existsResp, nil
+}

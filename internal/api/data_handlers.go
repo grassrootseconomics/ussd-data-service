@@ -256,6 +256,46 @@ func (a *API) poolSwapFromVouchersList(w http.ResponseWriter, req bunrouter.Requ
 	})
 }
 
+func (a *API) poolSwapFromCheck(w http.ResponseWriter, req bunrouter.Request) error {
+	u := PoolVoucherList{
+		UserAddress: req.Param("address"),
+		PoolAddress: req.Param("pool"),
+	}
+
+	if err := a.validator.Validate(u); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+
+	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+	if err != nil {
+		a.logg.Debug("Failed to get pool details", "error", err)
+		return err
+	}
+
+	if poolDetails == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Pool not found",
+		})
+	}
+
+	exists, err := a.chainDataSource.TokenExistsInIndex(req.Context(), poolDetails.VoucherRegistry, u.UserAddress)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Swap from check",
+		Result: map[string]any{
+			"canSwapFrom": exists,
+		},
+	})
+}
+
 func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Request) error {
 	u := PoolVoucherList{
 		UserAddress: req.Param("address"),
