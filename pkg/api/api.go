@@ -34,6 +34,7 @@ type (
 	}
 
 	TokenDetails struct {
+		TokenAddress  string `json:"tokenAddress" db:"token_address"`
 		TokenSymbol   string `json:"tokenSymbol" db:"token_symbol"`
 		TokenDecimals uint8  `json:"tokenDecimals" db:"token_decimals"`
 		SinkAddress   string `json:"sinkAddress" db:"sink_address"`

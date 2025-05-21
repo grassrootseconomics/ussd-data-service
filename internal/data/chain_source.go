@@ -100,6 +100,7 @@ func (c *Chain) TokenDetails(ctx context.Context, input string) (*api.TokenDetai
 	}
 
 	return &api.TokenDetails{
+		TokenAddress:  input,
 		TokenName:     tokenName,
 		TokenSymbol:   tokenSymbol,
 		TokenDecimals: tokenDecimals,
