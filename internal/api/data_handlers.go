@@ -300,6 +300,7 @@ func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Reques
 	u := PublicAddressParam{
 		Address: req.Param("pool"),
 	}
+	isStablesQueryOnly := req.URL.Query().Get("stables") == "true"
 
 	if err := a.validator.Validate(u); err != nil {
 		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
@@ -321,15 +322,25 @@ func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Reques
 		})
 	}
 
-	// stables, err := a.pgDataSource.Stables(req.Context())
-	// if err != nil {
-	// 	return err
-	// }
+	if isStablesQueryOnly {
+		stables, err := a.pgDataSource.Stables(req.Context())
+		if err != nil {
+			return err
+		}
 
-	// filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, stables)
-	// if err != nil {
-	// 	return err
-	// }
+		filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, stables)
+		if err != nil {
+			return err
+		}
+
+		return httputil.JSON(w, http.StatusOK, api.OKResponse{
+			Ok:          true,
+			Description: "Swap to list",
+			Result: map[string]any{
+				"filtered": filtered,
+			},
+		})
+	}
 
 	allTokens, err := a.chainDataSource.AllTokensInIndex(req.Context(), poolDetails.VoucherRegistry)
 	if err != nil {
