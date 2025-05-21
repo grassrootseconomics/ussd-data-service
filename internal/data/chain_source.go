@@ -222,3 +222,36 @@ func (c *Chain) TokenExistsInIndex(ctx context.Context, index string, tokenAddre
 	}
 	return existsResp, nil
 }
+
+// TODO: This is extremely inefficient dee to the number of round trips. We need to cache all this info
+func (c *Chain) AllTokensInIndex(ctx context.Context, index string) ([]*api.TokenDetails, error) {
+	tokenDetails := make([]*api.TokenDetails, 0)
+
+	tokenIndexIter, err := c.chain.NewBatchIterator(ctx, common.HexToAddress(index))
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		tokenIndexBatch, err := tokenIndexIter.Next(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if tokenIndexBatch == nil {
+			break
+		}
+
+		for _, address := range tokenIndexBatch {
+			if address != ethutils.ZeroAddress {
+				tokenDetail, err := c.TokenDetails(ctx, address.Hex())
+				if err != nil {
+					c.logg.Error("failed to get token details", "address", address.Hex(), "error", err)
+					continue
+				}
+				tokenDetails = append(tokenDetails, tokenDetail)
+			}
+		}
+	}
+
+	return tokenDetails, nil
+}

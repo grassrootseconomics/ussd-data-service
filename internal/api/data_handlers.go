@@ -297,9 +297,8 @@ func (a *API) poolSwapFromCheck(w http.ResponseWriter, req bunrouter.Request) er
 }
 
 func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Request) error {
-	u := PoolVoucherList{
-		UserAddress: req.Param("address"),
-		PoolAddress: req.Param("pool"),
+	u := PublicAddressParam{
+		Address: req.Param("pool"),
 	}
 
 	if err := a.validator.Validate(u); err != nil {
@@ -309,7 +308,7 @@ func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Reques
 		})
 	}
 
-	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.Address)
 	if err != nil {
 		a.logg.Debug("Failed to get pool details", "error", err)
 		return err
@@ -322,12 +321,17 @@ func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Reques
 		})
 	}
 
-	stables, err := a.pgDataSource.Stables(req.Context())
-	if err != nil {
-		return err
-	}
+	// stables, err := a.pgDataSource.Stables(req.Context())
+	// if err != nil {
+	// 	return err
+	// }
 
-	filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, stables)
+	// filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, stables)
+	// if err != nil {
+	// 	return err
+	// }
+
+	allTokens, err := a.chainDataSource.AllTokensInIndex(req.Context(), poolDetails.VoucherRegistry)
 	if err != nil {
 		return err
 	}
@@ -336,7 +340,7 @@ func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Reques
 		Ok:          true,
 		Description: "Swap to list",
 		Result: map[string]any{
-			"filtered": filtered,
+			"filtered": allTokens,
 		},
 	})
 }
