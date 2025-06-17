@@ -46,7 +46,11 @@ func NewChainProvider(o ChainOpts) *Chain {
 	}
 }
 
-func (c *Chain) MergeTokenBalances(ctx context.Context, input []*api.TokenHoldings, ownerAddress string) error {
+func (c *Chain) MergeTokenBalances(ctx context.Context, input []*api.TokenHoldings, ownerAddress string) ([]*api.TokenHoldings, error) {
+	if len(input) == 0 {
+		return input, nil
+	}
+
 	addresses := make([]common.Address, len(input))
 	for i, holding := range input {
 		addresses[i] = common.HexToAddress(holding.ContractAddress)
@@ -54,17 +58,22 @@ func (c *Chain) MergeTokenBalances(ctx context.Context, input []*api.TokenHoldin
 
 	tokenBalances, err := c.chain.TokensBalance(ctx, common.HexToAddress(ownerAddress), addresses)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	for _, holding := range input {
-		contractAddress := common.HexToAddress(holding.ContractAddress)
-		if balance, exists := tokenBalances[contractAddress]; exists {
+	zero := big.NewInt(0)
+
+	j := 0
+	for i, holding := range input {
+		contractAddress := addresses[i]
+		if balance, exists := tokenBalances[contractAddress]; exists && balance.Cmp(zero) > 0 {
 			holding.Balance = balance.String()
+			input[j] = holding
+			j++
 		}
 	}
 
-	return nil
+	return input[:j], nil
 }
 
 func (c *Chain) TokenDetails(ctx context.Context, input string) (*api.TokenDetails, error) {
@@ -160,8 +169,32 @@ func (c *Chain) MaxLimit(ctx context.Context, initator string, poolAddress strin
 	} else if err != nil {
 		return nil, err
 	}
+	c.logg.Info("Max limit calculation", "initiatorInTokenBalance", initiatorInTokenBalance, "outTokenBalance", outTokenBalance, "inTokenLimit", inTokenLimit)
 
 	return min([]*big.Int{inTokenLimit, initiatorInTokenBalance, outTokenBalance}), nil
+}
+
+func (c *Chain) GetSwapBalances(ctx context.Context, initiator string, poolAddress string, inToken string, outToken string) (*big.Int, *big.Int, error) {
+	var (
+		initiatorInTokenBalance *big.Int
+		outTokenBalance         *big.Int
+
+		batchErr w3.CallErrors
+	)
+
+	if err := c.chain.Client.CallCtx(
+		ctx,
+		eth.CallFunc(common.HexToAddress(inToken), balanceOf, common.HexToAddress(initiator)).Returns(&initiatorInTokenBalance),
+		eth.CallFunc(common.HexToAddress(outToken), balanceOf, common.HexToAddress(poolAddress)).Returns(&outTokenBalance),
+	); errors.As(err, &batchErr) {
+		return nil, nil, batchErr
+	} else if err != nil {
+		return nil, nil, err
+	}
+
+	c.logg.Info("Swap balances retrieved", "initiatorInTokenBalance", initiatorInTokenBalance, "outTokenBalance", outTokenBalance)
+
+	return initiatorInTokenBalance, outTokenBalance, nil
 }
 
 // This is very inefficent beacuse of round trips. But it is the only way to do it for now.

@@ -54,7 +54,7 @@ func main() {
 
 	pgChainDataStore, err := data.NewPgChainDataSource(data.PgChainDataOpts{
 		Logg:    lo,
-		DSN:     ko.MustString("postgres.chain_data_dsn"),
+		DSN:     ko.MustString("postgres.federation_dsn"),
 		Queries: pgQueries,
 	})
 	if err != nil {
@@ -65,6 +65,7 @@ func main() {
 	chainData := data.NewChainProvider(data.ChainOpts{
 		ChainID:     ko.MustInt64("chain.id"),
 		RPCEndpoint: ko.MustString("chain.rpc_endpoint"),
+		Logg:        lo,
 	})
 
 	publicKey, err := util.LoadSigningKey(ko.MustString("api.public_key"))

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math/big"
 	"net/http"
 
 	"github.com/grassrootseconomics/ussd-data-service/pkg/api"
@@ -20,6 +21,11 @@ type (
 	PoolVoucherList struct {
 		UserAddress string `validate:"required,eth_addr_checksum"`
 		PoolAddress string `validate:"required,eth_addr_checksum"`
+	}
+
+	TokenList struct {
+		TokenAddress string `validate:"required,eth_addr_checksum"`
+		PoolAddress  string `validate:"required,eth_addr_checksum"`
 	}
 
 	PoolLimits struct {
@@ -78,7 +84,8 @@ func (a *API) tokenHoldingsHandler(w http.ResponseWriter, req bunrouter.Request)
 		return err
 	}
 
-	if err := a.chainDataSource.MergeTokenBalances(req.Context(), tokenHoldings, r.Address); err != nil {
+	filteredHoldings, err := a.chainDataSource.MergeTokenBalances(req.Context(), tokenHoldings, r.Address)
+	if err != nil {
 		return err
 	}
 
@@ -86,7 +93,7 @@ func (a *API) tokenHoldingsHandler(w http.ResponseWriter, req bunrouter.Request)
 		Ok:          true,
 		Description: "Token holdings with current balances",
 		Result: map[string]any{
-			"holdings": tokenHoldings,
+			"holdings": filteredHoldings,
 		},
 	})
 }
@@ -224,7 +231,7 @@ func (a *API) poolSwapFromVouchersList(w http.ResponseWriter, req bunrouter.Requ
 		})
 	}
 
-	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+	poolDetails, err := a.pgDataSource.PoolDetails(req.Context(), u.PoolAddress)
 	if err != nil {
 		a.logg.Debug("Failed to get pool details", "error", err)
 		return err
@@ -237,12 +244,12 @@ func (a *API) poolSwapFromVouchersList(w http.ResponseWriter, req bunrouter.Requ
 		})
 	}
 
-	tokenHoldings, err := a.pgDataSource.TokenHoldings(req.Context(), u.UserAddress)
+	filtered, err := a.pgDataSource.PoolAllowedTokensForUser(req.Context(), u.UserAddress, u.PoolAddress)
 	if err != nil {
 		return err
 	}
 
-	filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, tokenHoldings)
+	filteredHoldings, err := a.chainDataSource.MergeTokenBalances(req.Context(), filtered, u.UserAddress)
 	if err != nil {
 		return err
 	}
@@ -251,15 +258,15 @@ func (a *API) poolSwapFromVouchersList(w http.ResponseWriter, req bunrouter.Requ
 		Ok:          true,
 		Description: "Swap from list",
 		Result: map[string]any{
-			"filtered": filtered,
+			"filtered": filteredHoldings,
 		},
 	})
 }
 
 func (a *API) poolSwapFromCheck(w http.ResponseWriter, req bunrouter.Request) error {
-	u := PoolVoucherList{
-		UserAddress: req.Param("address"),
-		PoolAddress: req.Param("pool"),
+	u := TokenList{
+		TokenAddress: req.Param("address"),
+		PoolAddress:  req.Param("pool"),
 	}
 
 	if err := a.validator.Validate(u); err != nil {
@@ -269,21 +276,9 @@ func (a *API) poolSwapFromCheck(w http.ResponseWriter, req bunrouter.Request) er
 		})
 	}
 
-	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+	isAllowed, err := a.pgDataSource.PoolTokenAllowed(req.Context(), u.PoolAddress, u.TokenAddress)
 	if err != nil {
-		a.logg.Debug("Failed to get pool details", "error", err)
-		return err
-	}
-
-	if poolDetails == nil {
-		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
-			Ok:          false,
-			Description: "Pool not found",
-		})
-	}
-
-	exists, err := a.chainDataSource.TokenExistsInIndex(req.Context(), poolDetails.VoucherRegistry, u.UserAddress)
-	if err != nil {
+		a.logg.Debug("Failed to check if token is allowed in pool", "error", err)
 		return err
 	}
 
@@ -291,7 +286,7 @@ func (a *API) poolSwapFromCheck(w http.ResponseWriter, req bunrouter.Request) er
 		Ok:          true,
 		Description: "Swap from check",
 		Result: map[string]any{
-			"canSwapFrom": exists,
+			"canSwapFrom": isAllowed,
 		},
 	})
 }
@@ -309,49 +304,36 @@ func (a *API) poolSwapToVouchersList(w http.ResponseWriter, req bunrouter.Reques
 		})
 	}
 
-	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.Address)
-	if err != nil {
-		a.logg.Debug("Failed to get pool details", "error", err)
-		return err
-	}
-
-	if poolDetails == nil {
-		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
-			Ok:          false,
-			Description: "Pool not found",
-		})
-	}
-
 	if isStablesQueryOnly {
-		stables, err := a.pgDataSource.Stables(req.Context())
-		if err != nil {
-			return err
-		}
-
-		filtered, err := a.chainDataSource.TokensExistsInIndex(req.Context(), poolDetails.VoucherRegistry, stables)
+		stables, err := a.pgDataSource.PoolAllowedStables(req.Context(), u.Address)
 		if err != nil {
 			return err
 		}
 
 		return httputil.JSON(w, http.StatusOK, api.OKResponse{
 			Ok:          true,
-			Description: "Swap to list",
+			Description: "Swap to list (stables only)",
 			Result: map[string]any{
-				"filtered": filtered,
+				"filtered": stables,
 			},
 		})
 	}
 
-	allTokens, err := a.chainDataSource.AllTokensInIndex(req.Context(), poolDetails.VoucherRegistry)
+	allTokens, err := a.pgDataSource.PoolAllowedTokens(req.Context(), u.Address)
+	if err != nil {
+		return err
+	}
+
+	filteredHoldings, err := a.chainDataSource.MergeTokenBalances(req.Context(), allTokens, u.Address)
 	if err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
-		Description: "Swap to list",
+		Description: "Swap to list (all tokens)",
 		Result: map[string]any{
-			"filtered": allTokens,
+			"filtered": filteredHoldings,
 		},
 	})
 }
@@ -363,6 +345,7 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 		FromToken:   req.Param("from"),
 		ToToken:     req.Param("to"),
 	}
+	a.logg.Debug("Pool max limit request", "pool", u.PoolAddress, "user", u.UserAddress, "from", u.FromToken, "to", u.ToToken)
 
 	if err := a.validator.Validate(u); err != nil {
 		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
@@ -371,24 +354,24 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 		})
 	}
 
-	poolDetails, err := a.chainDataSource.PoolDetails(req.Context(), u.PoolAddress)
+	swapRates, err := a.pgDataSource.PoolTokenSwapRates(req.Context(), u.PoolAddress, u.FromToken, u.ToToken)
 	if err != nil {
-		a.logg.Debug("Failed to get pool details", "error", err)
+		a.logg.Debug("Failed to get token swap rates", "error", err)
 		return err
 	}
 
-	if poolDetails == nil {
+	if swapRates == nil {
 		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
 			Ok:          false,
-			Description: "Pool not found",
+			Description: "Token swap rates not found for this pool",
 		})
 	}
 
-	maxLimit, err := a.chainDataSource.MaxLimit(
+	// Get user balance and pool balance from chain
+	userInBalance, poolOutBalance, err := a.chainDataSource.GetSwapBalances(
 		req.Context(),
 		u.UserAddress,
 		u.PoolAddress,
-		poolDetails.LimiterAddress,
 		u.FromToken,
 		u.ToToken,
 	)
@@ -396,11 +379,30 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 		return err
 	}
 
+	// Convert the token limit from database string to *big.Int
+	inTokenLimit := new(big.Int)
+	if _, ok := inTokenLimit.SetString(swapRates.InTokenLimit, 10); !ok {
+		return httputil.JSON(w, http.StatusInternalServerError, api.ErrResponse{
+			Ok:          false,
+			Description: "Invalid token limit format",
+		})
+	}
+
+	maxSwapInput := a.chainDataSource.MaxSwapInput(
+		userInBalance,
+		inTokenLimit,
+		poolOutBalance,
+		swapRates.InRate,
+		swapRates.OutRate,
+		swapRates.InDecimals,
+		swapRates.OutDecimals,
+	)
+
 	return httputil.JSON(w, http.StatusOK, api.OKResponse{
 		Ok:          true,
-		Description: "From token max limit",
+		Description: "From token max swap input",
 		Result: map[string]any{
-			"max": maxLimit.String(),
+			"max": maxSwapInput.String(),
 		},
 	})
 }

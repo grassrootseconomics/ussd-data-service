@@ -9,7 +9,7 @@ MCowBQYDK2VwAyEAHGCyaM2KW5/S31wd+jHuki2QrQw1pyAFUcz888ekiVA=
 -----END PUBLIC KEY-----"""
 
 [postgres]
-chain_data_dsn = "postgres://postgres:postgres@127.0.0.1:5432/ge_celo_data"
+federation_dsn = "postgres://postgres:postgres@127.0.0.1:5432/federation"
 
 [chain]
 id = 1337

@@ -129,12 +129,65 @@ func (pg *PgChainData) TopPools(ctx context.Context) ([]*api.PoolDetails, error)
 	return topPools, nil
 }
 
-func (pg *PgChainData) Stables(ctx context.Context) ([]*api.TokenHoldings, error) {
-	var stables []*api.TokenHoldings
+func (pg *PgChainData) PoolAllowedTokensForUser(ctx context.Context, userAddress, poolAddress string) ([]*api.TokenHoldings, error) {
+	var tokenHoldings []*api.TokenHoldings
 
-	if err := pgxscan.Select(ctx, pg.db, &stables, pg.queries.Stables); err != nil {
+	if err := pgxscan.Select(ctx, pg.db, &tokenHoldings, pg.queries.PoolAllowedTokensForUser, userAddress, poolAddress); err != nil {
 		return nil, err
 	}
 
-	return stables, nil
+	return tokenHoldings, nil
+}
+
+func (pg *PgChainData) PoolTokenAllowed(ctx context.Context, poolAddress, tokenAddress string) (bool, error) {
+	var result struct {
+		IsAllowed bool `db:"is_allowed"`
+	}
+
+	row, err := pg.db.Query(ctx, pg.queries.PoolTokenAllowed, poolAddress, tokenAddress)
+	if err != nil {
+		return false, err
+	}
+
+	if err := pgxscan.ScanOne(&result, row); err != nil {
+		return false, err
+	}
+
+	return result.IsAllowed, nil
+}
+
+func (pg *PgChainData) PoolAllowedTokens(ctx context.Context, poolAddress string) ([]*api.TokenHoldings, error) {
+	var tokenHoldings []*api.TokenHoldings
+
+	if err := pgxscan.Select(ctx, pg.db, &tokenHoldings, pg.queries.PoolAllowedTokens, poolAddress); err != nil {
+		return nil, err
+	}
+
+	return tokenHoldings, nil
+}
+
+func (pg *PgChainData) PoolAllowedStables(ctx context.Context, poolAddress string) ([]*api.TokenHoldings, error) {
+	var tokenHoldings []*api.TokenHoldings
+
+	if err := pgxscan.Select(ctx, pg.db, &tokenHoldings, pg.queries.PoolAllowedStables, poolAddress); err != nil {
+		return nil, err
+	}
+
+	return tokenHoldings, nil
+}
+
+func (pg *PgChainData) PoolTokenSwapRates(ctx context.Context, poolAddress, inTokenAddress, outTokenAddress string) (*api.TokenSwapRates, error) {
+	row, err := pg.db.Query(ctx, pg.queries.PoolTokenSwapRates, poolAddress, inTokenAddress, outTokenAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	var swapRates api.TokenSwapRates
+	if err := pgxscan.ScanOne(&swapRates, row); errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &swapRates, nil
 }
