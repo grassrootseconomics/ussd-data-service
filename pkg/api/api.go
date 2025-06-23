@@ -27,10 +27,10 @@ type (
 	}
 
 	TokenHoldings struct {
-		ContractAddress string `json:"contractAddress" db:"contract_address"`
-		TokenSymbol     string `json:"tokenSymbol" db:"token_symbol"`
-		TokenDecimals   string `json:"tokenDecimals" db:"token_decimals"`
-		Balance         string `json:"balance"`
+		TokenAddress  string `json:"tokenAddress" db:"contract_address"`
+		TokenSymbol   string `json:"tokenSymbol" db:"token_symbol"`
+		TokenDecimals string `json:"tokenDecimals" db:"token_decimals"`
+		Balance       string `json:"balance"`
 	}
 
 	TokenDetails struct {
