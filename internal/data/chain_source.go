@@ -49,7 +49,7 @@ func NewChainProvider(o ChainOpts) *Chain {
 func (c *Chain) MergeTokenBalances(ctx context.Context, input []*api.TokenHoldings, ownerAddress string) error {
 	addresses := make([]common.Address, len(input))
 	for i, holding := range input {
-		addresses[i] = common.HexToAddress(holding.ContractAddress)
+		addresses[i] = common.HexToAddress(holding.TokenAddress)
 	}
 
 	tokenBalances, err := c.chain.TokensBalance(ctx, common.HexToAddress(ownerAddress), addresses)
@@ -58,7 +58,7 @@ func (c *Chain) MergeTokenBalances(ctx context.Context, input []*api.TokenHoldin
 	}
 
 	for _, holding := range input {
-		contractAddress := common.HexToAddress(holding.ContractAddress)
+		contractAddress := common.HexToAddress(holding.TokenAddress)
 		if balance, exists := tokenBalances[contractAddress]; exists {
 			holding.Balance = balance.String()
 		}
@@ -170,7 +170,7 @@ func (c *Chain) TokensExistsInIndex(ctx context.Context, index string, input []*
 	resp := make([]bool, len(input))
 
 	for i, holding := range input {
-		calls[i] = eth.CallFunc(common.HexToAddress(index), exists, common.HexToAddress(holding.ContractAddress)).Returns(&resp[i])
+		calls[i] = eth.CallFunc(common.HexToAddress(index), exists, common.HexToAddress(holding.TokenAddress)).Returns(&resp[i])
 	}
 
 	var batchErr w3.CallErrors

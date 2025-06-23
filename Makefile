@@ -12,4 +12,4 @@ build:
 	${BUILD_CONF} go build -ldflags="-X main.build=${BUILD_COMMIT} -s -w" -o build/${BIN} cmd/main.go
 
 run:
-	${BUILD_CONF} ${DEBUG} go run cmd/main.go
+	${BUILD_CONF} ${DEBUG} go run cmd/main.go -config config.prod.toml
