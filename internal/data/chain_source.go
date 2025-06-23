@@ -53,7 +53,7 @@ func (c *Chain) MergeTokenBalances(ctx context.Context, input []*api.TokenHoldin
 
 	addresses := make([]common.Address, len(input))
 	for i, holding := range input {
-		addresses[i] = common.HexToAddress(holding.ContractAddress)
+		addresses[i] = common.HexToAddress(holding.TokenAddress)
 	}
 
 	tokenBalances, err := c.chain.TokensBalance(ctx, common.HexToAddress(ownerAddress), addresses)
@@ -203,7 +203,7 @@ func (c *Chain) TokensExistsInIndex(ctx context.Context, index string, input []*
 	resp := make([]bool, len(input))
 
 	for i, holding := range input {
-		calls[i] = eth.CallFunc(common.HexToAddress(index), exists, common.HexToAddress(holding.ContractAddress)).Returns(&resp[i])
+		calls[i] = eth.CallFunc(common.HexToAddress(index), exists, common.HexToAddress(holding.TokenAddress)).Returns(&resp[i])
 	}
 
 	var batchErr w3.CallErrors
