@@ -7,36 +7,56 @@ import (
 func (c *Chain) MaxSwapInput(
 	userInBalance *big.Int,
 	inTokenLimit *big.Int,
+	outTokenLimit *big.Int,
+	poolInBalance *big.Int,
 	poolOutBalance *big.Int,
 	inRate uint64,
 	outRate uint64,
 	inDecimals uint8,
 	outDecimals uint8,
 ) *big.Int {
-	if poolOutBalance.Sign() == 0 {
+	holdingA := new(big.Int).Sub(inTokenLimit, poolInBalance)
+	if holdingA.Sign() < 0 {
+		holdingA = big.NewInt(0)
+	}
+
+	holdingB := new(big.Int).Sub(outTokenLimit, poolOutBalance)
+	if holdingB.Sign() < 0 {
+		holdingB = big.NewInt(0)
+	}
+
+	maxOutputB := new(big.Int).Set(holdingB)
+	if maxOutputB.Cmp(poolOutBalance) > 0 {
+		maxOutputB.Set(poolOutBalance)
+	}
+
+	if maxOutputB.Sign() == 0 {
 		return big.NewInt(0)
 	}
 
-	numerator := new(big.Int).Set(poolOutBalance)
-	numerator.Mul(numerator, new(big.Int).SetUint64(outRate))
-	inMultiplier := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(inDecimals)), nil)
-	numerator.Mul(numerator, inMultiplier)
+	bigInRate := new(big.Int).SetUint64(inRate)
+	bigOutRate := new(big.Int).SetUint64(outRate)
 
-	outMultiplier := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(outDecimals)), nil)
-	denominator := new(big.Int).Mul(new(big.Int).SetUint64(inRate), outMultiplier)
-	maxFromOut := new(big.Int).Div(numerator, denominator)
+	pow10In := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(inDecimals)), nil)
+	pow10Out := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(outDecimals)), nil)
 
-	// Check in balance
-	maxInput := new(big.Int).Set(userInBalance)
+	numerator := new(big.Int).Mul(maxOutputB, bigOutRate)
+	numerator.Mul(numerator, pow10In)
 
-	// Check limit
-	if inTokenLimit.Cmp(maxInput) < 0 {
-		maxInput.Set(inTokenLimit)
+	denominator := new(big.Int).Mul(bigInRate, pow10Out)
+
+	if denominator.Sign() == 0 {
+		return big.NewInt(0)
 	}
 
-	// Check pool out balance
-	if maxFromOut.Cmp(maxInput) < 0 {
-		maxInput.Set(maxFromOut)
+	inputA_bound := new(big.Int).Div(numerator, denominator)
+
+	maxInput := new(big.Int).Set(holdingA)
+	if inputA_bound.Cmp(maxInput) < 0 {
+		maxInput.Set(inputA_bound)
+	}
+	if userInBalance.Cmp(maxInput) < 0 {
+		maxInput.Set(userInBalance)
 	}
 
 	return maxInput

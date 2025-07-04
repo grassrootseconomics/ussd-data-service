@@ -366,9 +366,12 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 			Description: "Token swap rates not found for this pool",
 		})
 	}
+	a.logg.Debug("Swap rates found", "inRate", swapRates.InRate, "outRate", swapRates.OutRate,
+		"inDecimals", swapRates.InDecimals, "outDecimals", swapRates.OutDecimals,
+		"inTokenLimit", swapRates.InTokenLimit, "outTokenLimit", swapRates.OutTokenLimit)
 
 	// Get user balance and pool balance from chain
-	userInBalance, poolOutBalance, err := a.chainDataSource.GetSwapBalances(
+	userInBalance, poolInBalance, poolOutBalance, err := a.chainDataSource.GetSwapBalances(
 		req.Context(),
 		u.UserAddress,
 		u.PoolAddress,
@@ -388,9 +391,19 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 		})
 	}
 
+	outTokenLimit := new(big.Int)
+	if _, ok := outTokenLimit.SetString(swapRates.OutTokenLimit, 10); !ok {
+		return httputil.JSON(w, http.StatusInternalServerError, api.ErrResponse{
+			Ok:          false,
+			Description: "Invalid token limit format",
+		})
+	}
+
 	maxSwapInput := a.chainDataSource.MaxSwapInput(
 		userInBalance,
 		inTokenLimit,
+		outTokenLimit,
+		poolInBalance,
 		poolOutBalance,
 		swapRates.InRate,
 		swapRates.OutRate,

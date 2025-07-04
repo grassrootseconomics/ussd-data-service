@@ -174,10 +174,11 @@ func (c *Chain) MaxLimit(ctx context.Context, initator string, poolAddress strin
 	return min([]*big.Int{inTokenLimit, initiatorInTokenBalance, outTokenBalance}), nil
 }
 
-func (c *Chain) GetSwapBalances(ctx context.Context, initiator string, poolAddress string, inToken string, outToken string) (*big.Int, *big.Int, error) {
+func (c *Chain) GetSwapBalances(ctx context.Context, initiator string, poolAddress string, inToken string, outToken string) (*big.Int, *big.Int, *big.Int, error) {
 	var (
 		initiatorInTokenBalance *big.Int
-		outTokenBalance         *big.Int
+		poolInTokenBalance      *big.Int
+		poolOutTokenBalance     *big.Int
 
 		batchErr w3.CallErrors
 	)
@@ -185,16 +186,17 @@ func (c *Chain) GetSwapBalances(ctx context.Context, initiator string, poolAddre
 	if err := c.chain.Client.CallCtx(
 		ctx,
 		eth.CallFunc(common.HexToAddress(inToken), balanceOf, common.HexToAddress(initiator)).Returns(&initiatorInTokenBalance),
-		eth.CallFunc(common.HexToAddress(outToken), balanceOf, common.HexToAddress(poolAddress)).Returns(&outTokenBalance),
+		eth.CallFunc(common.HexToAddress(inToken), balanceOf, common.HexToAddress(poolAddress)).Returns(&poolInTokenBalance),
+		eth.CallFunc(common.HexToAddress(outToken), balanceOf, common.HexToAddress(poolAddress)).Returns(&poolOutTokenBalance),
 	); errors.As(err, &batchErr) {
-		return nil, nil, batchErr
+		return nil, nil, nil, batchErr
 	} else if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	c.logg.Info("Swap balances retrieved", "initiatorInTokenBalance", initiatorInTokenBalance, "outTokenBalance", outTokenBalance)
+	c.logg.Info("Swap balances retrieved", "initiatorInTokenBalance", initiatorInTokenBalance, "poolInTokenBalance", poolInTokenBalance, "poolOutTokenBalance", poolOutTokenBalance)
 
-	return initiatorInTokenBalance, outTokenBalance, nil
+	return initiatorInTokenBalance, poolInTokenBalance, poolOutTokenBalance, nil
 }
 
 // This is very inefficent beacuse of round trips. But it is the only way to do it for now.

@@ -56,10 +56,11 @@ type (
 	}
 
 	TokenSwapRates struct {
-		InRate       uint64 `json:"inRate" db:"in_rate"`
-		OutRate      uint64 `json:"outRate" db:"out_rate"`
-		InDecimals   uint8  `json:"inDecimals" db:"in_decimals"`
-		OutDecimals  uint8  `json:"outDecimals" db:"out_decimals"`
-		InTokenLimit string `json:"inTokenLimit" db:"in_token_limit"`
+		InRate        uint64 `json:"inRate" db:"in_rate"`
+		OutRate       uint64 `json:"outRate" db:"out_rate"`
+		InDecimals    uint8  `json:"inDecimals" db:"in_decimals"`
+		OutDecimals   uint8  `json:"outDecimals" db:"out_decimals"`
+		InTokenLimit  string `json:"inTokenLimit" db:"in_token_limit"`
+		OutTokenLimit string `json:"outTokenLimit" db:"out_token_limit"`
 	}
 )

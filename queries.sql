@@ -145,22 +145,26 @@ WHERE pat.pool_address = $1
 -- $1: pool_address
 -- $2: in_token_address
 -- $3: out_token_address
-SELECT 
+SELECT
     in_token.exchange_rate as in_rate,
     out_token.exchange_rate as out_rate,
     in_token_details.token_decimals as in_decimals,
     out_token_details.token_decimals as out_decimals,
-    COALESCE(in_token_limit.token_limit, 0) as in_token_limit
+    COALESCE(in_token_limit.token_limit, '0') as in_token_limit,
+    COALESCE(out_token_limit.token_limit, '0') as out_token_limit
 FROM pool_router.pool_token_exchange_rates in_token
-JOIN pool_router.pool_token_exchange_rates out_token 
+JOIN pool_router.pool_token_exchange_rates out_token
     ON in_token.pool_address = out_token.pool_address
-JOIN pool_router.tokens in_token_details 
+JOIN pool_router.tokens in_token_details
     ON in_token.token_address = in_token_details.token_address
-JOIN pool_router.tokens out_token_details 
+JOIN pool_router.tokens out_token_details
     ON out_token.token_address = out_token_details.token_address
 LEFT JOIN pool_router.pool_token_limits in_token_limit
-    ON in_token.pool_address = in_token_limit.pool_address 
+    ON in_token.pool_address = in_token_limit.pool_address
     AND in_token.token_address = in_token_limit.token_address
-WHERE in_token.pool_address = $1 
-    AND in_token.token_address = $2 
+LEFT JOIN pool_router.pool_token_limits out_token_limit
+    ON out_token.pool_address = out_token_limit.pool_address
+    AND out_token.token_address = out_token_limit.token_address
+WHERE in_token.pool_address = $1
+    AND in_token.token_address = $2
     AND out_token.token_address = $3;
