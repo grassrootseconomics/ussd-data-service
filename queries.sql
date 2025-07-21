@@ -38,15 +38,47 @@ ORDER BY date_block DESC
 LIMIT 10;
 
 --name: token-holdings
--- Fetches an account's token holdings
+-- Fetches an account's token holdings, sorted by stablecoins first, then by most recent interaction
 -- $1: public_key
-SELECT DISTINCT tokens.token_symbol, tokens.contract_address, tokens.token_decimals
-FROM chain_data.tokens
-LEFT JOIN chain_data.token_transfer ON tokens.contract_address = token_transfer.contract_address
-AND (token_transfer.sender_address = $1 OR token_transfer.recipient_address = $1)
-LEFT JOIN chain_data.token_mint ON tokens.contract_address = token_mint.contract_address
-AND (token_mint.minter_address = $1 OR token_mint.recipient_address = $1)
-WHERE token_transfer.contract_address IS NOT NULL OR token_mint.contract_address IS NOT NULL;
+WITH user_interactions AS (
+    (
+        SELECT contract_address, tx.date_block
+        FROM chain_data.token_transfer tt
+        JOIN chain_data.tx ON tt.tx_id = tx.id
+        WHERE tt.sender_address = $1 OR tt.recipient_address = $1
+    )
+    UNION ALL
+    (
+        SELECT contract_address, tx.date_block
+        FROM chain_data.token_mint tm
+        JOIN chain_data.tx ON tm.tx_id = tx.id
+        WHERE tm.minter_address = $1 OR tm.recipient_address = $1
+    )
+),
+latest_interactions AS (
+    SELECT
+        contract_address,
+        MAX(date_block) as last_interaction_date
+    FROM user_interactions
+    GROUP BY contract_address
+)
+SELECT
+    t.token_symbol,
+    t.contract_address,
+    t.token_decimals
+FROM
+    latest_interactions li
+JOIN
+    chain_data.tokens t ON li.contract_address = t.contract_address
+ORDER BY
+    CASE
+        -- cUSD, USDT, cKES
+        WHEN li.contract_address = '0x765DE816845861e75A25fCA122bb6898B8B1282a' THEN 1
+        WHEN li.contract_address = '0x617f3112bf5397D0467D315cC709EF968D9ba546' THEN 2
+        WHEN li.contract_address = '0x456a3D042C0DbD3db53D5489e98dFb038553B0d0' THEN 3
+        ELSE 4
+    END,
+    li.last_interaction_date DESC;
 
 --name: token-details
 -- Fetches token details
