@@ -8,7 +8,7 @@ require (
 	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grassrootseconomics/ethutils v1.3.1
-	github.com/jackc/pgx/v5 v5.7.1
+	github.com/jackc/pgx/v5 v5.7.2
 	github.com/kamikazechaser/common v1.0.1-0.20241102071235-b1d359b0e63b
 	github.com/knadh/goyesql/v2 v2.2.0
 	github.com/knadh/koanf/parsers/toml v0.1.0
@@ -62,12 +62,12 @@ require (
 	github.com/valyala/histogram v1.2.0 // indirect
 	go.opentelemetry.io/otel v1.30.0 // indirect
 	go.opentelemetry.io/otel/trace v1.30.0 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
