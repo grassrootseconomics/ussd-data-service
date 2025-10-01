@@ -14,3 +14,4 @@ federation_dsn = "postgres://postgres:postgres@127.0.0.1:5432/federation"
 [chain]
 id = 1337
 rpc_endpoint = "http://localhost:8545"
+balances_scanner = "0xF62107c53a5b18646E823a21ed531ED934B1CE9E"

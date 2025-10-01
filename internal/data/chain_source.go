@@ -16,9 +16,10 @@ import (
 
 type (
 	ChainOpts struct {
-		ChainID     int64
-		RPCEndpoint string
-		Logg        *slog.Logger
+		ChainID         int64
+		RPCEndpoint     string
+		Logg            *slog.Logger
+		BalancesScanner string
 	}
 
 	Chain struct {
@@ -42,7 +43,7 @@ var (
 func NewChainProvider(o ChainOpts) *Chain {
 	return &Chain{
 		logg:  o.Logg,
-		chain: ethutils.NewProvider(o.RPCEndpoint, o.ChainID),
+		chain: ethutils.NewProvider(o.RPCEndpoint, o.ChainID, ethutils.WithBalanceScannerAddress(o.BalancesScanner)),
 	}
 }
 
@@ -290,4 +291,18 @@ func (c *Chain) AllTokensInIndex(ctx context.Context, index string) ([]*api.Toke
 	}
 
 	return tokenDetails, nil
+}
+
+func (c *Chain) TokenBalance(ctx context.Context, userAddress, tokenAddress string) (*big.Int, error) {
+	var balance *big.Int
+
+	err := c.chain.Client.CallCtx(
+		ctx,
+		eth.CallFunc(common.HexToAddress(tokenAddress), balanceOf, common.HexToAddress(userAddress)).Returns(&balance),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return balance, nil
 }

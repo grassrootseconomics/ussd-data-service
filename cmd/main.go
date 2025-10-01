@@ -63,9 +63,10 @@ func main() {
 	}
 
 	chainData := data.NewChainProvider(data.ChainOpts{
-		ChainID:     ko.MustInt64("chain.id"),
-		RPCEndpoint: ko.MustString("chain.rpc_endpoint"),
-		Logg:        lo,
+		ChainID:         ko.MustInt64("chain.id"),
+		RPCEndpoint:     ko.MustString("chain.rpc_endpoint"),
+		BalancesScanner: ko.MustString("chain.balances_scanner"),
+		Logg:            lo,
 	})
 
 	publicKey, err := util.LoadSigningKey(ko.MustString("api.public_key"))
