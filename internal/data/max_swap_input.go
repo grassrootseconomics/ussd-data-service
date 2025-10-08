@@ -20,15 +20,7 @@ func (c *Chain) MaxSwapInput(
 		holdingA = big.NewInt(0)
 	}
 
-	holdingB := new(big.Int).Sub(outTokenLimit, poolOutBalance)
-	if holdingB.Sign() < 0 {
-		holdingB = big.NewInt(0)
-	}
-
-	maxOutputB := new(big.Int).Set(holdingB)
-	if maxOutputB.Cmp(poolOutBalance) > 0 {
-		maxOutputB.Set(poolOutBalance)
-	}
+	maxOutputB := new(big.Int).Set(poolOutBalance)
 
 	if maxOutputB.Sign() == 0 {
 		return big.NewInt(0)

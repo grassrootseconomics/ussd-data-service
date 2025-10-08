@@ -219,3 +219,12 @@ LEFT JOIN pool_router.pool_token_limits out_token_limit
 WHERE in_token.pool_address = $1
     AND in_token.token_address = $2
     AND out_token.token_address = $3;
+
+--name: pool-token-limit
+-- Fetches the token limit for a specific token in a pool
+-- $1: pool_address
+-- $2: token_address
+SELECT
+    COALESCE(token_limit, '0') as token_limit
+FROM pool_router.pool_token_limits
+WHERE pool_address = $1 AND token_address = $2;

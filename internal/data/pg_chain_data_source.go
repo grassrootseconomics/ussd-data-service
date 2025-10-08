@@ -191,3 +191,22 @@ func (pg *PgChainData) PoolTokenSwapRates(ctx context.Context, poolAddress, inTo
 
 	return &swapRates, nil
 }
+
+func (pg *PgChainData) PoolTokenLimit(ctx context.Context, poolAddress, tokenAddress string) (string, error) {
+	var result struct {
+		TokenLimit string `db:"token_limit"`
+	}
+
+	row, err := pg.db.Query(ctx, pg.queries.PoolTokenLimit, poolAddress, tokenAddress)
+	if err != nil {
+		return "", err
+	}
+
+	if err := pgxscan.ScanOne(&result, row); errors.Is(err, pgx.ErrNoRows) {
+		return "0", nil
+	} else if err != nil {
+		return "", err
+	}
+
+	return result.TokenLimit, nil
+}

@@ -75,6 +75,8 @@ func New(o APIOpts) *API {
 		g.GET("/pool/:pool/to/", api.poolSwapToVouchersList)
 		g.GET("/pool/:pool/limit/:from/:to/:address", api.poolMaxLimit)
 		g.GET("/alias/:alias", api.aliasHandler)
+		g.GET("/absolute-credit/:pool/:token/:address", api.poolBalanceHandler)
+		g.GET("/relative-credit/:pool/:from/:to/:address", api.poolMaxLimit)
 	})
 
 	api.server = &http.Server{

@@ -35,6 +35,12 @@ type (
 		ToToken     string `validate:"required,eth_addr_checksum"`
 	}
 
+	PoolBalanceParams struct {
+		PoolAddress  string `validate:"required,eth_addr_checksum"`
+		TokenAddress string `validate:"required,eth_addr_checksum"`
+		UserAddress  string `validate:"required,eth_addr_checksum"`
+	}
+
 	AliasParam struct {
 		// TODO: Add extra validations here
 		Alias string `validate:"required"`
@@ -361,11 +367,12 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 	}
 
 	if swapRates == nil {
-		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
-			Ok:          false,
-			Description: "Token swap rates not found for this pool",
-		})
+		swapRates = &api.TokenSwapRates{}
+
+		swapRates.InRate = 10_000
+		swapRates.OutRate = 10_000
 	}
+
 	a.logg.Debug("Swap rates found", "inRate", swapRates.InRate, "outRate", swapRates.OutRate,
 		"inDecimals", swapRates.InDecimals, "outDecimals", swapRates.OutDecimals,
 		"inTokenLimit", swapRates.InTokenLimit, "outTokenLimit", swapRates.OutTokenLimit)
@@ -381,6 +388,8 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 	if err != nil {
 		return err
 	}
+	a.logg.Debug("Swap balances found", "userInBalance", userInBalance.String(),
+		"poolInBalance", poolInBalance.String(), "poolOutBalance", poolOutBalance.String())
 
 	// Convert the token limit from database string to *big.Int
 	inTokenLimit := new(big.Int)
@@ -415,7 +424,77 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 		Ok:          true,
 		Description: "From token max swap input",
 		Result: map[string]any{
-			"max": maxSwapInput.String(),
+			"max":            maxSwapInput.String(),
+			"relativeCredit": maxSwapInput.String(),
+		},
+	})
+}
+
+func (a *API) poolBalanceHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	u := PoolBalanceParams{
+		PoolAddress:  req.Param("pool"),
+		TokenAddress: req.Param("token"),
+		UserAddress:  req.Param("address"),
+	}
+
+	if err := a.validator.Validate(u); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+
+	poolLimit, err := a.pgDataSource.PoolTokenLimit(req.Context(), u.PoolAddress, u.TokenAddress)
+	if err != nil {
+		a.logg.Debug("Failed to get pool token limit", "error", err)
+		return err
+	}
+
+	poolLimitBig := new(big.Int)
+	if _, ok := poolLimitBig.SetString(poolLimit, 10); !ok {
+		return httputil.JSON(w, http.StatusInternalServerError, api.ErrResponse{
+			Ok:          false,
+			Description: "Invalid pool limit format",
+		})
+	}
+
+	userBalance, err := a.chainDataSource.TokenBalance(req.Context(), u.UserAddress, u.TokenAddress)
+	if err != nil {
+		return err
+	}
+
+	remainingLimit := new(big.Int).Sub(poolLimitBig, userBalance)
+	a.logg.Debug("Pool balance calculation",
+		"poolLimit", poolLimitBig.String(),
+		"userBalance", userBalance.String(),
+		"remainingLimit", remainingLimit.String())
+
+	// Calculate absoluteCredit = min(userBalance, poolLimit - userBalance)
+	// Examples:
+	// - If user has 50 SRF and pool limit is 60: credit = min(50, 60-50) = min(50, 10) = 10
+	// - If user has 10 SRF and pool limit is 1000000: credit = min(10, 1000000-10) = min(10, 999990) = 10
+	// Your credit can't be higher than your current balance
+	absoluteCredit := new(big.Int)
+	if userBalance.Cmp(remainingLimit) <= 0 {
+		// User balance is smaller or equal, so credit = user balance
+		absoluteCredit.Set(userBalance)
+	} else {
+		// Remaining limit is smaller, so credit = remaining limit
+		absoluteCredit.Set(remainingLimit)
+	}
+
+	var absoluteCreditString string
+	if absoluteCredit.Sign() >= 0 {
+		absoluteCreditString = "+" + absoluteCredit.String()
+	} else {
+		absoluteCreditString = absoluteCredit.String()
+	}
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Pool balance calculation with absolute credit",
+		Result: map[string]any{
+			"absoluteCredit": absoluteCreditString,
 		},
 	})
 }
