@@ -366,10 +366,10 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 		return err
 	}
 
-	if swapRates == nil {
-		swapRates = &api.TokenSwapRates{}
-
-		swapRates.InRate = 10_000
+	if swapRates.InRate == 0 {
+		swapRates.OutRate = 10_000
+	}
+	if swapRates.OutRate == 0 {
 		swapRates.OutRate = 10_000
 	}
 
