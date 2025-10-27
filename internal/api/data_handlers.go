@@ -41,6 +41,13 @@ type (
 		UserAddress  string `validate:"required,eth_addr_checksum"`
 	}
 
+	CreditSendParams struct {
+		PoolAddress string `validate:"required,eth_addr_checksum"`
+		UserAddress string `validate:"required,eth_addr_checksum"`
+		FromToken   string `validate:"required,eth_addr_checksum"` // SAT (Sender's Active Token)
+		ToToken     string `validate:"required,eth_addr_checksum"` // RAT (Recipient's Active Token)
+	}
+
 	AliasParam struct {
 		// TODO: Add extra validations here
 		Alias string `validate:"required"`
@@ -521,6 +528,112 @@ func (a *API) aliasHandler(w http.ResponseWriter, req bunrouter.Request) error {
 		Description: "Alias address",
 		Result: map[string]any{
 			"address": aliasAddress.Address,
+		},
+	})
+}
+
+func (a *API) creditSendHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	u := CreditSendParams{
+		PoolAddress: req.Param("pool"),
+		UserAddress: req.Param("address"),
+		FromToken:   req.Param("from"), // SAT
+		ToToken:     req.Param("to"),   // RAT
+	}
+	a.logg.Debug("Credit Send request", "pool", u.PoolAddress, "user", u.UserAddress, "from", u.FromToken, "to", u.ToToken)
+
+	if err := a.validator.Validate(u); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Address validation failed",
+		})
+	}
+
+	swapRates, err := a.pgDataSource.PoolTokenSwapRates(req.Context(), u.PoolAddress, u.FromToken, u.ToToken)
+	if err != nil {
+		a.logg.Debug("Failed to get token swap rates", "error", err)
+		return err
+	}
+
+	if swapRates.InRate == 0 {
+		swapRates.InRate = 10_000
+	}
+	if swapRates.OutRate == 0 {
+		swapRates.OutRate = 10_000
+	}
+
+	a.logg.Debug("Swap rates found", "inRate", swapRates.InRate, "outRate", swapRates.OutRate,
+		"inDecimals", swapRates.InDecimals, "outDecimals", swapRates.OutDecimals,
+		"inTokenLimit", swapRates.InTokenLimit, "outTokenLimit", swapRates.OutTokenLimit)
+
+	userInBalance, poolInBalance, poolOutBalance, err := a.chainDataSource.GetSwapBalances(
+		req.Context(),
+		u.UserAddress,
+		u.PoolAddress,
+		u.FromToken,
+		u.ToToken,
+	)
+	if err != nil {
+		return err
+	}
+	a.logg.Debug("Swap balances found", "userInBalance", userInBalance.String(),
+		"poolInBalance", poolInBalance.String(), "poolOutBalance", poolOutBalance.String())
+
+	inTokenLimit := new(big.Int)
+	if _, ok := inTokenLimit.SetString(swapRates.InTokenLimit, 10); !ok {
+		return httputil.JSON(w, http.StatusInternalServerError, api.ErrResponse{
+			Ok:          false,
+			Description: "Invalid token limit format",
+		})
+	}
+
+	outTokenLimit := new(big.Int)
+	if _, ok := outTokenLimit.SetString(swapRates.OutTokenLimit, 10); !ok {
+		return httputil.JSON(w, http.StatusInternalServerError, api.ErrResponse{
+			Ok:          false,
+			Description: "Invalid token limit format",
+		})
+	}
+
+	maxInSAT := a.chainDataSource.MaxSwapInput(
+		userInBalance,
+		inTokenLimit,
+		outTokenLimit,
+		poolInBalance,
+		poolOutBalance,
+		swapRates.InRate,
+		swapRates.OutRate,
+		swapRates.InDecimals,
+		swapRates.OutDecimals,
+	)
+
+	// maxInRAT = maxInSAT * (inRate / outRate) * (10^outDecimals / 10^inDecimals)
+	// This is the inverse of the MaxSwap calculation
+	bigInRate := new(big.Int).SetUint64(swapRates.InRate)
+	bigOutRate := new(big.Int).SetUint64(swapRates.OutRate)
+
+	pow10In := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(swapRates.InDecimals)), nil)
+	pow10Out := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(swapRates.OutDecimals)), nil)
+
+	numerator := new(big.Int).Mul(maxInSAT, bigInRate)
+	numerator.Mul(numerator, pow10Out)
+
+	denominator := new(big.Int).Mul(bigOutRate, pow10In)
+
+	var maxInRAT *big.Int
+	if denominator.Sign() == 0 {
+		maxInRAT = big.NewInt(0)
+	} else {
+		maxInRAT = new(big.Int).Div(numerator, denominator)
+	}
+
+	a.logg.Debug("Credit Send calculation", "maxInSAT", maxInSAT.String(), "maxInRAT", maxInRAT.String())
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Credit send limits",
+		Result: map[string]any{
+			"maxSAT": maxInSAT.String(),
+			"maxRAT": maxInRAT.String(),
 		},
 	})
 }

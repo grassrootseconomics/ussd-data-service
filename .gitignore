@@ -1,3 +1,4 @@
 config.prod.toml
 .vscode
 .env
+main
