@@ -48,6 +48,13 @@ type (
 		ToToken     string `validate:"required,eth_addr_checksum"` // RAT (Recipient's Active Token)
 	}
 
+	ReverseQuoteParams struct {
+		PoolAddress string `validate:"required,eth_addr_checksum"`
+		FromToken   string `validate:"required,eth_addr_checksum"` // Input token
+		ToToken     string `validate:"required,eth_addr_checksum"` // Output token
+		Amount      string `validate:"required"`                   // Desired output amount
+	}
+
 	AliasParam struct {
 		// TODO: Add extra validations here
 		Alias string `validate:"required"`
@@ -634,6 +641,82 @@ func (a *API) creditSendHandler(w http.ResponseWriter, req bunrouter.Request) er
 		Result: map[string]any{
 			"maxSAT": maxInSAT.String(),
 			"maxRAT": maxInRAT.String(),
+		},
+	})
+}
+
+func (a *API) reverseQuoteHandler(w http.ResponseWriter, req bunrouter.Request) error {
+	u := ReverseQuoteParams{
+		PoolAddress: req.Param("pool"),
+		FromToken:   req.Param("from"),
+		ToToken:     req.Param("to"),
+		Amount:      req.Param("amount"),
+	}
+	a.logg.Debug("Reverse quote request", "pool", u.PoolAddress, "from", u.FromToken, "to", u.ToToken, "amount", u.Amount)
+
+	if err := a.validator.Validate(u); err != nil {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Parameter validation failed",
+		})
+	}
+
+	outputAmount := new(big.Int)
+	if _, ok := outputAmount.SetString(u.Amount, 10); !ok {
+		return httputil.JSON(w, http.StatusBadRequest, api.ErrResponse{
+			Ok:          false,
+			Description: "Invalid amount format",
+		})
+	}
+
+	swapRates, err := a.pgDataSource.PoolTokenSwapRates(req.Context(), u.PoolAddress, u.FromToken, u.ToToken)
+	if err != nil {
+		a.logg.Debug("Failed to get token swap rates", "error", err)
+		return err
+	}
+
+	if swapRates.InRate == 0 {
+		swapRates.InRate = 10_000
+	}
+	if swapRates.OutRate == 0 {
+		swapRates.OutRate = 10_000
+	}
+
+	a.logg.Debug("Swap rates found", "inRate", swapRates.InRate, "outRate", swapRates.OutRate,
+		"inDecimals", swapRates.InDecimals, "outDecimals", swapRates.OutDecimals)
+
+	// inputAmount = outputAmount * (outRate / inRate) * (10^inDecimals / 10^outDecimals)
+	// This is based on: outputAmount = inputAmount * (inRate / outRate) * (10^outDecimals / 10^inDecimals)
+
+	bigInRate := new(big.Int).SetUint64(swapRates.InRate)
+	bigOutRate := new(big.Int).SetUint64(swapRates.OutRate)
+
+	pow10In := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(swapRates.InDecimals)), nil)
+	pow10Out := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(swapRates.OutDecimals)), nil)
+
+	numerator := new(big.Int).Mul(outputAmount, bigOutRate)
+	numerator.Mul(numerator, pow10In)
+
+	denominator := new(big.Int).Mul(bigInRate, pow10Out)
+
+	var inputAmount *big.Int
+	if denominator.Sign() == 0 {
+		return httputil.JSON(w, http.StatusInternalServerError, api.ErrResponse{
+			Ok:          false,
+			Description: "Invalid swap rate configuration",
+		})
+	}
+
+	inputAmount = new(big.Int).Div(numerator, denominator)
+
+	a.logg.Debug("Reverse quote calculation", "outputAmount", outputAmount.String(), "inputAmount", inputAmount.String())
+
+	return httputil.JSON(w, http.StatusOK, api.OKResponse{
+		Ok:          true,
+		Description: "Required input amount for desired output",
+		Result: map[string]any{
+			"inputAmount":  inputAmount.String(),
+			"outputAmount": outputAmount.String(),
 		},
 	})
 }

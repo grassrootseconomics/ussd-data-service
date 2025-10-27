@@ -75,6 +75,7 @@ func New(o APIOpts) *API {
 		g.GET("/pool/:pool/to/", api.poolSwapToVouchersList)
 		g.GET("/alias/:alias", api.aliasHandler)
 		g.GET("/credit-send/:pool/:from/:to/:address", api.creditSendHandler)
+		g.GET("/pool/reverse-quote/:pool/:from/:to/:amount", api.reverseQuoteHandler)
 		// Legacy routes, remove in the future
 		g.GET("/pool/:pool/limit/:from/:to/:address", api.poolMaxLimit)
 		g.GET("/absolute-credit/:pool/:token/:address", api.poolBalanceHandler)
