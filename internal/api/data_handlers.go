@@ -380,6 +380,13 @@ func (a *API) poolMaxLimit(w http.ResponseWriter, req bunrouter.Request) error {
 		return err
 	}
 
+	if swapRates == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Swap rates not found for the specified pool and tokens",
+		})
+	}
+
 	if swapRates.InRate == 0 {
 		swapRates.OutRate = 10_000
 	}
@@ -561,6 +568,13 @@ func (a *API) creditSendHandler(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
+	if swapRates == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Swap rates not found for the specified pool and tokens",
+		})
+	}
+
 	if swapRates.InRate == 0 {
 		swapRates.InRate = 10_000
 	}
@@ -673,6 +687,13 @@ func (a *API) reverseQuoteHandler(w http.ResponseWriter, req bunrouter.Request) 
 	if err != nil {
 		a.logg.Debug("Failed to get token swap rates", "error", err)
 		return err
+	}
+
+	if swapRates == nil {
+		return httputil.JSON(w, http.StatusNotFound, api.ErrResponse{
+			Ok:          false,
+			Description: "Swap rates not found for the specified pool and tokens",
+		})
 	}
 
 	if swapRates.InRate == 0 {
