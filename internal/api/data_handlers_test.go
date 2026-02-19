@@ -17,17 +17,19 @@ func TestCalculateReverseQuote(t *testing.T) {
 	}{
 		{
 			name:         "real swap rates inRate=1290000 outRate=10000",
-			outputAmount: big.NewInt(1010000),
+			outputAmount: big.NewInt(1000000),
 			inRate:       1_290_000,
 			outRate:      10_000,
 			inDecimals:   6,
 			outDecimals:  6,
-			want:         big.NewInt(7829),
+			want:         big.NewInt(7752),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// cast call 0x045Dc382332aBFb9155FF7D1bD9981fF142492a9 "getQuote(address,address,uint256)(uint256)" 0xf1AB7Ab052140653Ceb69149F22d72ea9CD5eCc6 0xcebA9300f2b948710d2653dD7B07f33A8B32118C 7752
+			// >= 1000000 output => input >= 7752
 			got := CalculateReverseQuote(tt.outputAmount, tt.inRate, tt.outRate, tt.inDecimals, tt.outDecimals)
 			t.Logf("outputAmount=%s, inRate=%d, outRate=%d, inDecimals=%d, outDecimals=%d => inputAmount=%s",
 				tt.outputAmount.String(), tt.inRate, tt.outRate, tt.inDecimals, tt.outDecimals, got.String())

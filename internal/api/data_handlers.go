@@ -750,5 +750,9 @@ func CalculateReverseQuote(outputAmount *big.Int, inRate, outRate uint64, inDeci
 		return nil
 	}
 
-	return new(big.Int).Div(numerator, denominator)
+	// Ceiling division: ceil(a/b) = (a + b - 1) / b
+	// This ensures the input amount, when fed back into the contract's
+	// floor(input * inRate / outRate), always yields >= the desired output.
+	numerator.Add(numerator, new(big.Int).Sub(denominator, big.NewInt(1)))
+	return numerator.Div(numerator, denominator)
 }
