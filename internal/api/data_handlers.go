@@ -706,29 +706,14 @@ func (a *API) reverseQuoteHandler(w http.ResponseWriter, req bunrouter.Request) 
 	a.logg.Debug("Swap rates found", "inRate", swapRates.InRate, "outRate", swapRates.OutRate,
 		"inDecimals", swapRates.InDecimals, "outDecimals", swapRates.OutDecimals)
 
-	// inputAmount = outputAmount * (outRate / inRate) * (10^inDecimals / 10^outDecimals)
-	// This is based on: outputAmount = inputAmount * (inRate / outRate) * (10^outDecimals / 10^inDecimals)
+	inputAmount := CalculateReverseQuote(outputAmount, swapRates.InRate, swapRates.OutRate, swapRates.InDecimals, swapRates.OutDecimals)
 
-	bigInRate := new(big.Int).SetUint64(swapRates.InRate)
-	bigOutRate := new(big.Int).SetUint64(swapRates.OutRate)
-
-	pow10In := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(swapRates.InDecimals)), nil)
-	pow10Out := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(swapRates.OutDecimals)), nil)
-
-	numerator := new(big.Int).Mul(outputAmount, bigOutRate)
-	numerator.Mul(numerator, pow10In)
-
-	denominator := new(big.Int).Mul(bigInRate, pow10Out)
-
-	var inputAmount *big.Int
-	if denominator.Sign() == 0 {
+	if inputAmount == nil {
 		return httputil.JSON(w, http.StatusInternalServerError, api.ErrResponse{
 			Ok:          false,
 			Description: "Invalid swap rate configuration",
 		})
 	}
-
-	inputAmount = new(big.Int).Div(numerator, denominator)
 
 	a.logg.Debug("Reverse quote calculation", "outputAmount", outputAmount.String(), "inputAmount", inputAmount.String())
 
@@ -740,4 +725,30 @@ func (a *API) reverseQuoteHandler(w http.ResponseWriter, req bunrouter.Request) 
 			"outputAmount": outputAmount.String(),
 		},
 	})
+}
+
+func CalculateReverseQuote(outputAmount *big.Int, inRate, outRate uint64, inDecimals, outDecimals uint8) *big.Int {
+	if inRate == 0 {
+		inRate = 10_000
+	}
+	if outRate == 0 {
+		outRate = 10_000
+	}
+
+	bigInRate := new(big.Int).SetUint64(inRate)
+	bigOutRate := new(big.Int).SetUint64(outRate)
+
+	pow10In := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(inDecimals)), nil)
+	pow10Out := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(outDecimals)), nil)
+
+	numerator := new(big.Int).Mul(outputAmount, bigOutRate)
+	numerator.Mul(numerator, pow10In)
+
+	denominator := new(big.Int).Mul(bigInRate, pow10Out)
+
+	if denominator.Sign() == 0 {
+		return nil
+	}
+
+	return new(big.Int).Div(numerator, denominator)
 }
