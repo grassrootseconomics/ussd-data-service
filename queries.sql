@@ -108,7 +108,7 @@ SELECT
     token_registry_address,
     token_limiter_address
 FROM pool_router.swap_pools 
-WHERE pool_symbol = $1;
+WHERE pool_symbol ILIKE $1;
 
 
 --name: top-active-pools
