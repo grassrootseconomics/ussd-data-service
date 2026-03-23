@@ -12,9 +12,9 @@
         tx.success,
         tokens.token_symbol,
         tokens.token_decimals
-    FROM chain_data.token_transfer
-    INNER JOIN chain_data.tx ON token_transfer.tx_id = tx.id
-    INNER JOIN chain_data.tokens ON token_transfer.contract_address = tokens.contract_address
+    FROM chain_data_v2.token_transfer
+    INNER JOIN chain_data_v2.tx ON token_transfer.tx_id = tx.id
+    INNER JOIN chain_data_v2.tokens ON token_transfer.contract_address = tokens.contract_address
     WHERE token_transfer.sender_address = $1 OR token_transfer.recipient_address = $1
 )
 UNION ALL
@@ -29,9 +29,9 @@ UNION ALL
         tx.success,
         tokens.token_symbol,
         tokens.token_decimals
-    FROM chain_data.token_mint
-    INNER JOIN chain_data.tx ON token_mint.tx_id = tx.id
-    INNER JOIN chain_data.tokens ON token_mint.contract_address = tokens.contract_address
+    FROM chain_data_v2.token_mint
+    INNER JOIN chain_data_v2.tx ON token_mint.tx_id = tx.id
+    INNER JOIN chain_data_v2.tokens ON token_mint.contract_address = tokens.contract_address
     WHERE token_mint.minter_address = $1 OR token_mint.recipient_address = $1
 )
 ORDER BY date_block DESC
@@ -43,15 +43,15 @@ LIMIT 10;
 WITH user_interactions AS (
     (
         SELECT contract_address, tx.date_block
-        FROM chain_data.token_transfer tt
-        JOIN chain_data.tx ON tt.tx_id = tx.id
+        FROM chain_data_v2.token_transfer tt
+        JOIN chain_data_v2.tx ON tt.tx_id = tx.id
         WHERE tt.sender_address = $1 OR tt.recipient_address = $1
     )
     UNION ALL
     (
         SELECT contract_address, tx.date_block
-        FROM chain_data.token_mint tm
-        JOIN chain_data.tx ON tm.tx_id = tx.id
+        FROM chain_data_v2.token_mint tm
+        JOIN chain_data_v2.tx ON tm.tx_id = tx.id
         WHERE tm.minter_address = $1 OR tm.recipient_address = $1
     )
 ),
@@ -69,21 +69,22 @@ SELECT
 FROM
     latest_interactions li
 JOIN
-    chain_data.tokens t ON li.contract_address = t.contract_address
+    chain_data_v2.tokens t ON li.contract_address = t.contract_address
 ORDER BY
     CASE
-        -- cUSD, USDT, cKES
+        -- cUSD, USDT, cKES, USDC
         WHEN li.contract_address = '0x765DE816845861e75A25fCA122bb6898B8B1282a' THEN 1
         WHEN li.contract_address = '0x617f3112bf5397D0467D315cC709EF968D9ba546' THEN 2
         WHEN li.contract_address = '0x456a3D042C0DbD3db53D5489e98dFb038553B0d0' THEN 3
-        ELSE 4
+        WHEN li.contract_address = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C' THEN 4
+        ELSE 5
     END,
     li.last_interaction_date DESC;
 
 --name: token-details
 -- Fetches token details
 -- $1: token_address
-SELECT tokens.contract_address AS token_address, tokens.token_name, tokens.token_symbol, tokens.token_decimals, tokens.sink_address FROM chain_data.tokens
+SELECT tokens.contract_address AS token_address, tokens.token_name, tokens.token_symbol, tokens.token_decimals, tokens.sink_address FROM chain_data_v2.tokens
 WHERE tokens.contract_address = $1;
 
 --name: pool-details
@@ -115,8 +116,8 @@ WHERE pool_symbol ILIKE $1;
 -- Fetches top 5 active pools based on the last 1k swaps
 WITH recent_swaps AS (
     SELECT ps.contract_address
-    FROM chain_data.pool_swap ps
-    JOIN chain_data.tx ON ps.tx_id = tx.id
+    FROM chain_data_v2.pool_swap ps
+    JOIN chain_data_v2.tx ON ps.tx_id = tx.id
     ORDER BY ps.id DESC
     LIMIT 1000
 )
@@ -159,11 +160,11 @@ SELECT DISTINCT
     t.token_symbol, 
     t.contract_address, 
     t.token_decimals
-FROM chain_data.tokens t
+FROM chain_data_v2.tokens t
 INNER JOIN pool_router.pool_allowed_tokens pat ON t.contract_address = pat.token_address
-LEFT JOIN chain_data.token_transfer tt ON t.contract_address = tt.contract_address
+LEFT JOIN chain_data_v2.token_transfer tt ON t.contract_address = tt.contract_address
     AND (tt.sender_address = $1 OR tt.recipient_address = $1)
-LEFT JOIN chain_data.token_mint tm ON t.contract_address = tm.contract_address
+LEFT JOIN chain_data_v2.token_mint tm ON t.contract_address = tm.contract_address
     AND (tm.minter_address = $1 OR tm.recipient_address = $1)
 WHERE pat.pool_address = $2
     AND (tt.contract_address IS NOT NULL OR tm.contract_address IS NOT NULL);
