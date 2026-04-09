@@ -102,14 +102,16 @@ WHERE pool_address = $1;
 --name: pool-reverse-details
 -- Fetches pool details by symbol from pool_router schema
 -- $1: pool_symbol
-SELECT 
-    pool_name, 
-    pool_symbol, 
+SELECT
+    pool_name,
+    pool_symbol,
     pool_address as contract_address,
     token_registry_address,
     token_limiter_address
-FROM pool_router.swap_pools 
-WHERE pool_symbol ILIKE $1;
+FROM pool_router.swap_pools
+WHERE pool_symbol ILIKE $1
+ORDER BY created_at DESC
+LIMIT 1;
 
 
 --name: top-active-pools
